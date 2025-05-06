@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { CreateNotification, GetAllNotifications, MarkNotificationAsRead } from '../../service/api';
 
 const AdminNotification = () => {
   const [notifications, setNotifications] = useState([]);
@@ -7,6 +8,8 @@ const AdminNotification = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const { register, handleSubmit, reset, formState: { errors } } = useForm();
+  // Assuming token is available, e.g., from localStorage or context
+  const token = localStorage.getItem('authToken') || 'your-token-here'; // Replace with actual token retrieval logic
 
   // Format date for display
   const formatDate = (dateString) => {
@@ -21,67 +24,52 @@ const AdminNotification = () => {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  // Mock data for demo
-  useEffect(() => {
-    const mockNotifications = [
-      {
-        _id: "6805e88d86355dc131e80512",
-        title: "New Lecture",
-        message: "Join the live session at 6PM",
-        type: "announcement",
-        readBy: [],
-        createdAt: "2025-04-21T06:41:17.975Z",
-        isRead: false
-      },
-      {
-        _id: "6805eade86355dc131e80527",
-        title: "System Maintenance",
-        message: "The system will be down for maintenance tomorrow from 2AM to 4AM",
-        type: "alert",
-        readBy: [],
-        createdAt: "2025-04-20T12:30:45.675Z",
-        isRead: true
-      }
-    ];
-    setNotifications(mockNotifications);
-  }, []);
-
-  const onSubmit = async (data) => {
+  // Fetch all notifications
+  const fetchNotifications = async () => {
     setIsLoading(true);
     setError(null);
-    
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
     try {
-      const newNotification = {
-        _id: Math.random().toString(36).substr(2, 9),
-        ...data,
-        readBy: [],
-        createdAt: new Date().toISOString(),
-        isRead: false
-      };
-      setNotifications([newNotification, ...notifications]);
-      reset();
-      setShowForm(false);
+      const data = await GetAllNotifications(token);
+      setNotifications(data); // API returns array of notifications
     } catch (err) {
-      setError(err.message || "Failed to save notification");
+      setError(err.message || 'Failed to fetch notifications');
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Fetch notifications on component mount
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  // Handle form submission to create a new notification
+  const onSubmit = async (data) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await CreateNotification(data, token);
+      await fetchNotifications(); // Refresh notifications list after creation
+      reset();
+      setShowForm(false);
+    } catch (err) {
+      setError(err.message || 'Failed to create notification');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle marking a notification as read
   const handleMarkAsRead = async (id) => {
     setIsLoading(true);
     setError(null);
-    
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
     try {
+      await MarkNotificationAsRead(id, token);
       setNotifications(notifications.map(notification => 
         notification._id === id ? { ...notification, isRead: true } : notification
       ));
     } catch (err) {
-      setError(err.message || "Failed to mark notification as read");
+      setError(err.message || 'Failed to mark notification as read');
     } finally {
       setIsLoading(false);
     }
@@ -215,10 +203,10 @@ const AdminNotification = () => {
                 <div className="flex flex-col sm:flex-row justify-between items-start">
                   <div className="mb-3 sm:mb-0">
                     <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-1">{notification.title}</h2>
-                    <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                    <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
                       notification.type === 'alert' ? 'bg-red-100 text-red-800' : 
                       notification.type === 'reminder' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
-                    }">
+                    }`}>
                       {notification.type}
                     </span>
                   </div>

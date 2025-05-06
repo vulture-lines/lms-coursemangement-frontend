@@ -1,106 +1,35 @@
 import React, { useState, useEffect } from 'react';
+import { GetAllQueries, UpdateQuery, DeleteQuery } from '../../service/api';
 
-// Mock API functions (unchanged)
-const mockTickets = [
-  {
-    _id: "68073b03f9630252a3e1f087",
-    raisedBy: "Saran T",
-    title: "Doubt in topic X",
-    issue: "I didn't understand the concept",
-    status: "confirmed",
-    requestMessage: "resateasoj",
-    requestedDate: "2025-02-21",
-    scheduledDate: "2025-02-20",
-    time: "11:25",
-    meetingLink: "https://meet.google.com/rdj-fmkb-huk",
-    purpose: "fcbgcbvcb"
-  },
-  {
-    _id: "68073b03f9630252a3e1f088",
-    raisedBy: "Saran TG",
-    title: "Issue with assignment Y",
-    issue: "Need clarification on submission process",
-    status: "confirmed",
-    requestMessage: "-",
-    requestedDate: "-",
-    scheduledDate: "2025-02-20",
-    time: "11:25",
-    meetingLink: "https://meet.google.com/rdj-fmkb-huk",
-    purpose: "dzf"
-  },
-  {
-    _id: "68073b03f9630252a3e1f089",
-    raisedBy: "Saran T",
-    title: "Another question",
-    issue: "Need help with project",
-    status: "confirmed",
-    requestMessage: "-",
-    requestedDate: "-",
-    scheduledDate: "2025-02-21",
-    time: "15:25",
-    meetingLink: "https://meet.google.com/rdj-fmkb-huk",
-    purpose: "dfdgd"
-  },
-  {
-    _id: "68073b03f9630252a3e1f090",
-    raisedBy: "Saran TG",
-    title: "Request for extension",
-    issue: "I need more time",
-    status: "pending",
-    requestMessage: "drgrd",
-    requestedDate: "2025-03-14",
-    scheduledDate: "Not Scheduled",
-    time: "Not Set",
-    meetingLink: "No Link",
-    purpose: "-"
-  },
-  {
-    _id: "68073b03f9630252a3e1f091",
-    raisedBy: "Test",
-    title: "Test request",
-    issue: "Testing system",
-    status: "pending",
-    requestMessage: "Test",
-    requestedDate: "2000-10-10",
-    scheduledDate: "Not Scheduled",
-    time: "Not Set",
-    meetingLink: "No Link",
-    purpose: "-"
-  }
-];
-
-const AdminQuery = () => {
-  const [meetings, setMeetings] = useState([]);
+const AdminQueriesPage = () => {
+  const [queries, setQueries] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [currentMeeting, setCurrentMeeting] = useState(null);
+  const [currentQuery, setCurrentQuery] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
-    raisedBy: '',
-    requestMessage: '',
-    requestedDate: '',
-    scheduledDate: '',
-    time: '',
     meetingLink: '',
-    purpose: ''
+    meetingTime: '',
+    expiresAt: '',
+    responseMessage: '',
+    notes: ''
   });
 
-  // Fetch all meetings (unchanged)
+  // Fetch all queries using GetAllQueries API
   useEffect(() => {
-    const fetchMeetings = async () => {
+    const fetchQueries = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const data = await new Promise(resolve => setTimeout(() => resolve(mockTickets), 500));
-        setMeetings(data);
+        const data = await GetAllQueries();
+        setQueries(data);
       } catch (err) {
-        setError(err.message || "Failed to load meetings");
+        setError(err.message || "Failed to load queries");
       } finally {
         setIsLoading(false);
       }
     };
-    fetchMeetings();
+    fetchQueries();
   }, []);
 
   const handleInputChange = (e) => {
@@ -111,79 +40,66 @@ const AdminQuery = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    const saveData = async () => {
-      try {
-        if (isEditing && currentMeeting) {
-          const updatedMeeting = {
-            ...currentMeeting,
-            ...formData,
-            status: formData.scheduledDate && formData.scheduledDate !== "Not Scheduled" ? "confirmed" : "pending"
-          };
-          await new Promise(resolve => setTimeout(resolve, 500));
-          setMeetings(meetings.map(meeting => 
-            meeting._id === updatedMeeting._id ? updatedMeeting : meeting
-          ));
-        } else {
-          const newMeeting = {
-            _id: Math.random().toString(36).substr(2, 9),
-            ...formData,
-            status: formData.scheduledDate && formData.scheduledDate !== "Not Scheduled" ? "confirmed" : "pending"
-          };
-          await new Promise(resolve => setTimeout(resolve, 500));
-          setMeetings([...meetings, newMeeting]);
-        }
-        resetForm();
-      } catch (err) {
-        setError(err.message || "Failed to save meeting");
-      } finally {
-        setIsLoading(false);
+    setError(null);
+
+    try {
+      if (currentQuery) {
+        // Update existing query
+        const updateData = {
+          meetingLink: formData.meetingLink,
+          meetingTime: formData.meetingTime,
+          expiresAt: formData.expiresAt,
+          responseMessage: formData.responseMessage,
+          notes: formData.notes
+        };
+        const updatedQuery = await UpdateQuery(currentQuery._id, updateData);
+        setQueries(queries.map(query =>
+          query._id === updatedQuery.ticket._id ? updatedQuery.ticket : query
+        ));
       }
-    };
-    
-    saveData();
+      resetForm();
+    } catch (err) {
+      setError(err.message || "Failed to update query");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const resetForm = () => {
     setFormData({
-      raisedBy: '',
-      requestMessage: '',
-      requestedDate: '',
-      scheduledDate: '',
-      time: '',
       meetingLink: '',
-      purpose: ''
+      meetingTime: '',
+      expiresAt: '',
+      responseMessage: '',
+      notes: ''
     });
     setShowForm(false);
-    setIsEditing(false);
-    setCurrentMeeting(null);
+    setCurrentQuery(null);
   };
 
-  const handleEdit = (meeting) => {
-    setCurrentMeeting(meeting);
+  const handleEdit = (query) => {
+    setCurrentQuery(query);
     setFormData({
-      raisedBy: meeting.raisedBy,
-      requestMessage: meeting.requestMessage,
-      requestedDate: meeting.requestedDate,
-      scheduledDate: meeting.scheduledDate === "Not Scheduled" ? "" : meeting.scheduledDate,
-      time: meeting.time === "Not Set" ? "" : meeting.time,
-      meetingLink: meeting.meetingLink === "No Link" ? "" : meeting.meetingLink,
-      purpose: meeting.purpose === "-" ? "" : meeting.purpose
+      meetingLink: query.meetingLink || '',
+      meetingTime: query.meetingTime || '',
+      expiresAt: query.expiresAt || '',
+      responseMessage: query.responseMessage || '',
+      notes: query.notes || ''
     });
-    setIsEditing(true);
     setShowForm(true);
   };
 
   const handleDelete = async (id) => {
     setIsLoading(true);
+    setError(null);
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setMeetings(meetings.filter(meeting => meeting._id !== id));
+      await DeleteQuery(id);
+      setQueries(queries.filter(query => query._id !== id));
     } catch (err) {
-      setError(err.message || "Failed to delete meeting");
+      setError(err.message || "Failed to delete query");
     } finally {
       setIsLoading(false);
     }
@@ -192,15 +108,7 @@ const AdminQuery = () => {
   return (
     <div className="container mx-auto px-4 py-4 sm:py-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 space-y-4 sm:space-y-0">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Query Management</h1>
-        {!showForm && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="w-full sm:w-auto px-6 py-3 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 text-sm sm:text-base"
-          >
-            Schedule Meeting
-          </button>
-        )}
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Admin Queries Management</h1>
       </div>
 
       {error && (
@@ -215,78 +123,10 @@ const AdminQuery = () => {
 
       {showForm && (
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
-          <h2 className="text-lg sm:text-xl font-semibold mb-4">
-            {isEditing ? 'Edit Meeting' : 'Schedule New Meeting'}
-          </h2>
+          <h2 className="text-lg sm:text-xl font-semibold mb-4">Update Query</h2>
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  User Name
-                </label>
-                <input
-                  type="text"
-                  name="raisedBy"
-                  value={formData.raisedBy}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Request Message
-                </label>
-                <input
-                  type="text"
-                  name="requestMessage"
-                  value={formData.requestMessage}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Requested Date
-                </label>
-                <input
-                  type="date"
-                  name="requestedDate"
-                  value={formData.requestedDate}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Scheduled Date
-                </label>
-                <input
-                  type="date"
-                  name="scheduledDate"
-                  value={formData.scheduledDate}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Time
-                </label>
-                <input
-                  type="time"
-                  name="time"
-                  value={formData.time}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
-                />
-              </div>
-              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Meeting Link
@@ -297,19 +137,62 @@ const AdminQuery = () => {
                   value={formData.meetingLink}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+                  placeholder="e.g., https://meet.google.com/rdj-fmkb-huk"
+                  required
                 />
               </div>
-              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Purpose
+                  Meeting Time (Unix timestamp)
+                </label>
+                <input
+                  type="number"
+                  name="meetingTime"
+                  value={formData.meetingTime}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+                  placeholder="e.g., 12"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Expires At (Unix timestamp)
+                </label>
+                <input
+                  type="number"
+                  name="expiresAt"
+                  value={formData.expiresAt}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+                  placeholder="e.g., 9"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Response Message
                 </label>
                 <input
                   type="text"
-                  name="purpose"
-                  value={formData.purpose}
+                  name="responseMessage"
+                  value={formData.responseMessage}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+                  placeholder="e.g., attend the meeting"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes
+                </label>
+                <textarea
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm sm:text-base"
+                  placeholder="e.g., none"
                 />
               </div>
             </div>
@@ -320,7 +203,7 @@ const AdminQuery = () => {
                 className="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm sm:text-base"
                 disabled={isLoading}
               >
-                {isEditing ? 'Update' : 'Schedule'}
+                Update
               </button>
               <button
                 type="button"
@@ -340,61 +223,63 @@ const AdminQuery = () => {
         <table className="w-full bg-white border border-gray-200 rounded-lg overflow-hidden">
           <thead>
             <tr className="bg-green-500 text-white uppercase text-xs sm:text-sm">
-              <th className="px-4 sm:px-6 py-3 text-left">User Name</th>
+              <th className="px-4 sm:px-6 py-3 text-left">Student Name</th>
+              <th className="px-4 sm:px-6 py-3 text-left">Title</th>
+              <th className="px-4 sm:px-6 py-3 text-left">Issue</th>
+              <th className="px-4 sm:px-6 py-3 text-left">Course ID</th>
+              <th className="px-4 sm:px-6 py-3 text-left">Course Title</th>
               <th className="px-4 sm:px-6 py-3 text-left">Status</th>
-              <th className="px-4 sm:px-6 py-3 text-left">Request Message</th>
-              <th className="px-4 sm:px-6 py-3 text-left">Requested Date</th>
-              <th className="px-4 sm:px-6 py-3 text-left">Scheduled Date</th>
-              <th className="px-4 sm:px-6 py-3 text-left">Time</th>
+              <th className="px-4 sm:px-6 py-3 text-left">Mentor</th>
               <th className="px-4 sm:px-6 py-3 text-left">Meeting Link</th>
-              <th className="px-4 sm:px-6 py-3 text-left">Purpose</th>
+              <th className="px-4 sm:px-6 py-3 text-left">Response Message</th>
               <th className="px-4 sm:px-6 py-3 text-left">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {meetings.length === 0 && !isLoading ? (
+            {queries.length === 0 && !isLoading ? (
               <tr>
-                <td colSpan="9" className="px-4 sm:px-6 py-4 text-center text-gray-500 text-sm">
-                  No meetings scheduled yet.
+                <td colSpan="10" className="px-4 sm:px-6 py-4 text-center text-gray-500 text-sm">
+                  No queries found.
                 </td>
               </tr>
             ) : (
-              meetings.map(meeting => (
-                <tr key={meeting._id} className="hover:bg-gray-50">
-                  <td className="px-4 sm:px-6 py-4 text-sm">{meeting.raisedBy}</td>
+              queries.map(query => (
+                <tr key={query._id} className="hover:bg-gray-50">
+                  <td className="px-4 sm:px-6 py-4 text-sm">{query.studentName}</td>
+                  <td className="px-4 sm:px-6 py-4 text-sm">{query.title}</td>
+                  <td className="px-4 sm:px-6 py-4 text-sm">{query.issue}</td>
+                  <td className="px-4 sm:px-6 py-4 text-sm">{query.course}</td>
+                  <td className="px-4 sm:px-6 py-4 text-sm">{query.courseTitle || 'N/A'}</td>
                   <td className="px-4 sm:px-6 py-4">
                     <span className={`px-2 sm:px-3 py-1 text-xs sm:text-sm ${
-                      meeting.status === 'confirmed' 
-                        ? 'text-green-800 bg-white' 
-                        : 'text-yellow-800 bg-yellow-400'
-                    }`}>
-                      {meeting.status}
+                      query.status === 'Accepted' 
+                        ? 'text-green-800 bg-green-100' 
+                        : 'text-yellow-800 bg-yellow-100'
+                    } rounded-full`}>
+                      {query.status}
                     </span>
                   </td>
-                  <td className="px-4 sm:px-6 py-4 text-sm">{meeting.requestMessage}</td>
-                  <td className="px-4 sm:px-6 py-4 text-sm">{meeting.requestedDate}</td>
-                  <td className="px-4 sm:px-6 py-4 text-sm">{meeting.scheduledDate}</td>
-                  <td className="px-4 sm:px-6 py-4 text-sm">{meeting.time}</td>
+                  <td className="px-4 sm:px-6 py-4 text-sm">{query.mentorName || query.acceptedBy || 'Not Assigned'}</td>
                   <td className="px-4 sm:px-6 py-4 text-sm">
-                    {meeting.meetingLink !== "No Link" ? (
-                      <a href={meeting.meetingLink} target="_blank" rel="noopener noreferrer" className="text-green-500 hover:underline">
+                    {query.meetingLink ? (
+                      <a href={query.meetingLink} target="_blank" rel="noopener noreferrer" className="text-green-500 hover:underline">
                         Open Link
                       </a>
                     ) : (
-                      meeting.meetingLink
+                      'No Link'
                     )}
                   </td>
-                  <td className="px-4 sm:px-6 py-4 text-sm">{meeting.purpose}</td>
+                  <td className="px-4 sm:px-6 py-4 text-sm">{query.responseMessage || '-'}</td>
                   <td className="px-4 sm:px-6 py-4">
                     <div className="flex flex-col space-y-2">
                       <button
-                        onClick={() => handleEdit(meeting)}
+                        onClick={() => handleEdit(query)}
                         className="px-3 sm:px-4 py-2 bg-green-500 text-white font-bold rounded hover:bg-green-600 text-xs sm:text-sm"
                       >
-                        Edit
+                        Update
                       </button>
                       <button
-                        onClick={() => handleDelete(meeting._id)}
+                        onClick={() => handleDelete(query._id)}
                         className="px-3 sm:px-4 py-2 bg-red-500 text-white font-bold rounded hover:bg-red-600 text-xs sm:text-sm"
                       >
                         Delete
@@ -410,61 +295,64 @@ const AdminQuery = () => {
 
       {/* Mobile Card View */}
       <div className="block sm:hidden space-y-4">
-        {meetings.length === 0 && !isLoading ? (
+        {queries.length === 0 && !isLoading ? (
           <div className="text-center text-gray-500 py-4 text-sm">
-            No meetings scheduled yet.
+            No queries found.
           </div>
         ) : (
-          meetings.map(meeting => (
-            <div key={meeting._id} className="bg-white rounded-lg shadow-md p-4">
+          queries.map(query => (
+            <div key={query._id} className="bg-white rounded-lg shadow-md p-4">
               <div className="space-y-2">
                 <div>
-                  <span className="font-medium text-sm">User Name:</span> {meeting.raisedBy}
+                  <span className="font-medium text-sm">Student Name:</span> {query.studentName}
+                </div>
+                <div>
+                  <span className="font-medium text-sm">Title:</span> {query.title}
+                </div>
+                <div>
+                  <span className="font-medium text-sm">Issue:</span> {query.issue}
+                </div>
+                <div>
+                  <span className="font-medium text-sm">Course ID:</span> {query.course}
+                </div>
+                <div>
+                  <span className="font-medium text-sm">Course Title:</span> {query.courseTitle || 'N/A'}
                 </div>
                 <div>
                   <span className="font-medium text-sm">Status:</span>
                   <span className={`ml-2 px-2 py-1 text-xs ${
-                    meeting.status === 'confirmed' 
-                      ? 'text-green-800 bg-white' 
-                      : 'text-yellow-800 bg-yellow-400'
-                  }`}>
-                    {meeting.status}
+                    query.status === 'Accepted' 
+                      ? 'text-green-800 bg-green-100' 
+                      : 'text-yellow-800 bg-yellow-100'
+                  } rounded-full`}>
+                    {query.status}
                   </span>
                 </div>
                 <div>
-                  <span className="font-medium text-sm">Request Message:</span> {meeting.requestMessage}
-                </div>
-                <div>
-                  <span className="font-medium text-sm">Requested Date:</span> {meeting.requestedDate}
-                </div>
-                <div>
-                  <span className="font-medium text-sm">Scheduled Date:</span> {meeting.scheduledDate}
-                </div>
-                <div>
-                  <span className="font-medium text-sm">Time:</span> {meeting.time}
+                  <span className="font-medium text-sm">Mentor:</span> {query.mentorName || query.acceptedBy || 'Not Assigned'}
                 </div>
                 <div>
                   <span className="font-medium text-sm">Meeting Link:</span>{' '}
-                  {meeting.meetingLink !== "No Link" ? (
-                    <a href={meeting.meetingLink} target="_blank" rel="noopener noreferrer" className="text-green-500 hover:underline text-sm">
+                  {query.meetingLink ? (
+                    <a href={query.meetingLink} target="_blank" rel="noopener noreferrer" className="text-green-500 hover:underline text-sm">
                       Open Link
                     </a>
                   ) : (
-                    meeting.meetingLink
+                    'No Link'
                   )}
                 </div>
                 <div>
-                  <span className="font-medium text-sm">Purpose:</span> {meeting.purpose}
+                  <span className="font-medium text-sm">Response Message:</span> {query.responseMessage || '-'}
                 </div>
-                <div className="flex space-x-2 pt-2">
+                <div className="flex flex-wrap gap-2 pt-2">
                   <button
-                    onClick={() => handleEdit(meeting)}
+                    onClick={() => handleEdit(query)}
                     className="flex-1 px-3 py-2 bg-green-500 text-white font-bold rounded hover:bg-green-600 text-sm"
                   >
-                    Edit
+                    Update
                   </button>
                   <button
-                    onClick={() => handleDelete(meeting._id)}
+                    onClick={() => handleDelete(query._id)}
                     className="flex-1 px-3 py-2 bg-red-500 text-white font-bold rounded hover:bg-red-600 text-sm"
                   >
                     Delete
@@ -479,4 +367,4 @@ const AdminQuery = () => {
   );
 };
 
-export default AdminQuery;
+export default AdminQueriesPage;

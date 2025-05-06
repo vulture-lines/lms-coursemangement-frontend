@@ -35,21 +35,23 @@ const AdminAnnouncement = () => {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  // Fetch all announcements
+  // Function to fetch announcements
+  const refreshAnnouncements = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await GetAllAnnouncements();
+      setAnnouncements(data);
+    } catch (err) {
+      setError(err.message || "Failed to load announcements");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch all announcements on mount
   useEffect(() => {
-    const fetchAnnouncements = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const data = await GetAllAnnouncements();
-        setAnnouncements(data);
-      } catch (err) {
-        setError(err.message || "Failed to load announcements");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchAnnouncements();
+    refreshAnnouncements();
   }, []);
 
   const onSubmit = async (data) => {
@@ -58,24 +60,22 @@ const AdminAnnouncement = () => {
     try {
       if (isEditing && currentAnnouncement) {
         // Update existing announcement
-        const updatedAnnouncement = await UpdateAnnouncement(currentAnnouncement._id, {
+        await UpdateAnnouncement(currentAnnouncement._id, {
           ...data,
           updatedAt: new Date().toISOString()
         });
-        setAnnouncements(announcements.map(announcement =>
-          announcement._id === updatedAnnouncement._id ? updatedAnnouncement : announcement
-        ));
       } else {
         // Create new announcement
-        const newAnnouncement = await CreateAnnouncement({
+        await CreateAnnouncement({
           ...data,
           creator: "68033770c2c0584a3b4af07e", // Replace with actual logged-in user ID
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           attachments: []
         });
-        setAnnouncements([newAnnouncement, ...announcements]);
       }
+      // Refresh announcements
+      await refreshAnnouncements();
       reset();
       setShowForm(false);
       setIsEditing(false);
@@ -104,7 +104,8 @@ const AdminAnnouncement = () => {
     setError(null);
     try {
       await DeleteAnnouncement(id);
-      setAnnouncements(announcements.filter(announcement => announcement._id !== id));
+      // Refresh announcements
+      await refreshAnnouncements();
     } catch (err) {
       setError(err.message || "Failed to delete announcement");
     } finally {
@@ -199,7 +200,7 @@ const AdminAnnouncement = () => {
             
             <div>
               <label htmlFor="expiresAt" className="block text-sm font-medium text-gray-700 mb-1">
-               Expiration Date (optional)
+                Expiration Date (optional)
               </label>
               <input
                 id="expiresAt"

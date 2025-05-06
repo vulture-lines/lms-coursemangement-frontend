@@ -1,18 +1,12 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-// import Nolesson from "../../Assets/Images/no-lesson-illustration.svg";
-import { useLocation, useNavigate, useParams } from "react-router";
-
-// import Trash from "../../Assets/Images/trash.png";
-// import EditImg from "../../Assets/Images/edit.png";
-import NewLesson from "./NewLesson";
-// import { addnewCourse } from "../../../api/baseApi";
-// import { convertToCourseFormData } from "../../../hooks/newCourseFunctions";
-
-import NoLesson from "../../assets/no-lesson-illustration.svg";
+import { useNavigate, useParams } from "react-router";
 import { Edit, Trash } from "lucide-react";
+import NewLesson from "./NewLesson";
+import NoLesson from "../../assets/no-lesson-illustration.svg";
 import { convertToCourseFormData } from "../../hook/CourseFunction";
 import { AddNewCourseApi, GetCourseById, UploadFile } from "../../service/api";
+
 const UserInfo = JSON.parse(localStorage.getItem("loginData"));
 
 const AddNewCourse = () => {
@@ -25,7 +19,6 @@ const AddNewCourse = () => {
     text: "",
     updateIndex: null,
   });
-  // console.log(currentWhatYouGet,currentWhoIsThisFor);
 
   const handleInputChange = (section, type, value) => {
     setError(null);
@@ -82,19 +75,18 @@ const AddNewCourse = () => {
 
   const { courseId } = useParams();
   const [courseContentDetailsData, setCourseContentDetailsData] = useState({});
-  const [selectedIcon, setSelectedIcon] = useState(null);
   const [fetchError, setFetchError] = useState(false);
-
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [thumbnailLoading, setThumbnailLoading] = useState(false); // New state for thumbnail upload loading
   const [error, setError] = useState(null);
-
   const [popupOpen, setPopupOpen] = useState({ open: false, data: null });
   const [currentOverview, setCurrentOverview] = useState({
     heading: "",
     content: "",
     updateIndex: null,
   });
+  const [thumbnailPreview, setThumbnailPreview] = useState(null); // New state for image preview
 
   const [courseData, setCourseData] = useState({
     title: "",
@@ -105,11 +97,7 @@ const AddNewCourse = () => {
     lessons: [],
     whatYouGet: [],
     whoIsThisFor: [],
-    // mentor: UserInfo?.user._id,
-    // mentorName: UserInfo?.user.username,
   });
-
-  console.log(courseData);
 
   useEffect(() => {
     if (popupOpen.open) window.scrollTo(0, 0);
@@ -118,14 +106,20 @@ const AddNewCourse = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // const apiBaseUrl = process.env.REACT_APP_API_BASE_URL;
-
-        // const response = await axios.get(
-        //   `${apiBaseUrl}/courseDetail/${courseId}`
-        // );
         const response = await GetCourseById(courseId);
         setCourseContentDetailsData(response.data);
-        // console.log(response.data.price);
+        // Populate courseData for editing
+        setCourseData({
+          title: response.data.title || "",
+          description: response.data.description || "",
+          price: response.data.price || "",
+          thumbnail: response.data.thumbnail || null,
+          lessons: response.data.lessons || [],
+          whatYouGet: response.data.whatYouGet || [],
+          whoIsThisFor: response.data.whoIsThisFor || [],
+          overviewPoints: response.data.overviewPoints || [],
+        });
+        setThumbnailPreview(response.data.thumbnail || null); // Set initial preview
         setIsLoading(false);
         setFetchError(false);
       } catch (err) {
@@ -135,8 +129,8 @@ const AddNewCourse = () => {
       }
     };
 
-    fetchData();
-  }, []);
+    if (courseId) fetchData();
+  }, [courseId]);
 
   const validateCourse = () => {
     if (!courseData.title.trim()) return "Course title is required";
@@ -146,21 +140,16 @@ const AddNewCourse = () => {
       return "Valid price is required";
     if (courseData.lessons.length === 0)
       return "At least one lesson is required";
+    if (!courseData.thumbnail) return "Course thumbnail is required";
     return null;
   };
 
   const handledirectInput = (type, value) => {
     setError(null);
-    if (type === "price") {
-      // Ensure price is stored as a number
-      const numericValue = parseFloat(value);
-      setCourseData({
-        ...courseData,
-        [type]: isNaN(numericValue) ? "" : numericValue,
-      });
-    } else {
-      setCourseData({ ...courseData, [type]: value });
-    }
+    setCourseData({
+      ...courseData,
+      [type]: type === "price" ? parseFloat(value) || "" : value,
+    });
   };
 
   const handleOverviewInput = (type, value) => {
@@ -175,7 +164,7 @@ const AddNewCourse = () => {
         newOverview.push({
           heading: currentOverview.heading,
           content: currentOverview.content,
-          updateIndex: newOverview.length > 0 ? newOverview.length : 0,
+          updateIndex: newOverview.length,
         });
       } else {
         newOverview[currentOverview.updateIndex] = {
@@ -216,7 +205,7 @@ const AddNewCourse = () => {
     if (lesson.updateIndex === null) {
       newLessons.push({
         ...lesson,
-        updateIndex: newLessons.length > 0 ? newLessons.length : 0,
+        updateIndex: newLessons.length,
       });
     } else {
       newLessons[lesson.updateIndex] = lesson;
@@ -238,45 +227,39 @@ const AddNewCourse = () => {
 
   const HandleThumbnail = async (e) => {
     const file = e.target.files[0];
-    const formData = new FormData();
-    formData.append("file", file);
-    const res = await UploadFile(formData);
-    console.log(res);
-    setCourseData({ ...courseData, thumbnail: res.data.fileUrl });
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      setError("Please select a valid image file (e.g., JPG, PNG).");
+      return;
+    }
+
+    // Set preview immediately
+    const previewUrl = URL.createObjectURL(file);
+    setThumbnailPreview(previewUrl);
+    setThumbnailLoading(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await UploadFile(formData);
+      if (res?.data?.fileUrl) {
+        setCourseData({ ...courseData, thumbnail: res.data.fileUrl });
+      } else {
+        throw new Error("Invalid response from server");
+      }
+    } catch (error) {
+      setError("Failed to upload thumbnail. Please try again.");
+      setThumbnailPreview(null); // Reset preview on failure
+      setCourseData({ ...courseData, thumbnail: null });
+      console.error("Thumbnail upload failed:", error);
+    } finally {
+      setThumbnailLoading(false);
+      URL.revokeObjectURL(previewUrl); // Clean up preview URL
+    }
   };
-
-  // const HandleThumbnail = async (e) => {
-  //   const file = e.target.files[0];
-  //   if (!file) return;
-
-  //   // Basic validation
-  //   if (!file.type.startsWith("image/")) {
-  //     alert("Please select a valid image file.");
-  //     return;
-  //   }
-
-  //   const formData = new FormData();
-  //   formData.append("file", file);
-
-  //   try {
-  //     // setLoading(true); // Optional: show a loading spinner
-  //     const res = await UploadFile("file", formData);
-
-  //     if (res?.data?.fileUrl) {
-  //       setCourseData((prev) => ({
-  //         ...prev,
-  //         thumbnail: res.data.fileUrl,
-  //       }));
-  //     } else {
-  //       throw new Error("Invalid response from server.");
-  //     }
-  //   } catch (error) {
-  //     console.error("Thumbnail upload failed:", error);
-  //     alert("Failed to upload thumbnail. Please try again.");
-  //   } finally {
-  //     setLoading(false); // Optional: hide loading spinner
-  //   }
-  // };
 
   const uploadCourse = async () => {
     try {
@@ -289,46 +272,32 @@ const AddNewCourse = () => {
         return;
       }
 
-      // const courseFormData = convertToCourseFormData(courseData);
-      // const response = await AddNewCourseApi(courseFormData);
       const response = await AddNewCourseApi(courseData);
 
-      console.log(response); // Log the full response object
-      console.log(response.data); // Log just the data part
-
-      // Update this condition to check for newCourse instead of course
       if (response.data?.newCourse) {
         navigate("/admin");
       } else {
         throw new Error("Invalid response from server");
       }
     } catch (error) {
-      console.error(
-        "Error creating course:",
-        error.response?.data || error.message
-      );
       setError(
         error.response?.data?.details ||
           error.response?.data?.message ||
           error.message ||
           "Failed to create course. Please try again."
       );
+      console.error("Error creating course:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div
-      // className={`course-list-cnt ${
-      //   popupOpen.open ? "overflow-hidden" : "overflow-scroll"
-      // } new-course`}
-      className="p-4"
-    >
+    <div className="p-4">
       <div className="flex justify-between items-start mb-6">
         <div>
           <h3 className="text-2xl font-bold">Create New Course</h3>
-          <p className="text-gray-600">Create new course and lets publish</p>
+          <p className="text-gray-600">Create new course and let's publish</p>
         </div>
 
         {error && <div className="text-red-500 my-2">{error}</div>}
@@ -343,7 +312,7 @@ const AddNewCourse = () => {
           <button
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
             onClick={uploadCourse}
-            disabled={isLoading}
+            disabled={isLoading || thumbnailLoading}
           >
             {isLoading ? "Saving..." : "Save Course"}
           </button>
@@ -390,166 +359,78 @@ const AddNewCourse = () => {
             </div>
             <div className="flex-1">
               <p className="mb-1">Upload course thumbnail</p>
-              <input
-                type="file"
-                accept="image/*"
-                // onChange={(e) =>
-                //   setCourseData({ ...courseData, thumbnail: e.target.files[0] })
-                // }
-                onChange={HandleThumbnail}
-                className="w-full bg-green-600 text-white px-4 py-2"
-              />
+              <div className="relative">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={HandleThumbnail}
+                  className="w-full border border-gray-300 rounded px-4 py-2 file:bg-green-600 file:text-white file:border-none file:px-4 file:py-2 file:rounded"
+                  disabled={thumbnailLoading}
+                />
+                {thumbnailLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-100 bg-opacity-75 rounded">
+                    <svg
+                      className="animate-spin h-5 w-5 text-green-600"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                  </div>
+                )}
+              </div>
+              {/* Thumbnail Preview */}
+              {thumbnailPreview && (
+                <div className="mt-4">
+                  <p className="mb-1 text-sm text-gray-600">Thumbnail Preview</p>
+                  <div className="relative w-40 h-40 rounded-md overflow-hidden">
+                    <img
+                      src={thumbnailPreview}
+                      alt="Thumbnail Preview"
+                      className="w-full h-full object-cover"
+                    />
+                    {thumbnailLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-gray-100 bg-opacity-75">
+                        <svg
+                          className="animate-spin h-5 w-5 text-green-600"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-
-          {/* Overview Points */}
-          {/* <div>
-            <p className="mb-2 font-semibold">Overview Points</p>
-            <div className="flex flex-col md:flex-row gap-2 mb-4 items-start">
-              <input
-                type="text"
-                className="flex-1 border border-gray-300 rounded px-4 py-2"
-                value={currentOverview.heading}
-                placeholder="Heading"
-                onChange={(e) => handleOverviewInput("heading", e.target.value)}
-              />
-              <textarea
-                className="flex-1 border border-gray-300 rounded px-4 py-2"
-                placeholder="Description"
-                value={currentOverview.content}
-                onChange={(e) => handleOverviewInput("content", e.target.value)}
-              />
-              <button
-                className="bg-green-500 text-white px-4 py-2 rounded"
-                onClick={addNewOverview}
-                type="button"
-              >
-                Add
-              </button>
-            </div>
-
-            {courseData.overviewPoints.map((overview, index) => (
-              <div
-                className="mb-4 border border-gray-200 p-4 rounded"
-                key={index}
-              >
-                <div className="flex justify-between items-center">
-                  <p className="font-bold">{overview.heading}</p>
-                  <div className="flex space-x-2">
-                   
-                    <Trash
-                      className="w-5 h-5 cursor-pointer"
-                      onClick={() => handleRemoveOverview(index)}
-                    />
-                    <Edit
-                      className="w-5 h-5 cursor-pointer"
-                      onClick={() => setEditValues(overview, index)}
-                    />
-                  </div>
-                </div>
-                <p className="text-sm text-gray-700">{overview.content}</p>
-              </div>
-            ))}
-          </div> */}
-
-          {/* What You Get */}
-          {/* <div>
-            <p className="mb-2 font-semibold">What You Get</p>
-            <div className="flex flex-col md:flex-row gap-2 mb-4 items-start">
-              <input
-                type="text"
-                className="flex-1 border border-gray-300 rounded px-4 py-2"
-                value={currentWhatYouGet.title}
-                placeholder="Title"
-                onChange={(e) =>
-                  handleInputChange("whatYouGet", "title", e.target.value)
-                }
-              />
-              <textarea
-                className="flex-1 border border-gray-300 rounded px-4 py-2"
-                placeholder="Description"
-                value={currentWhatYouGet.description}
-                onChange={(e) =>
-                  handleInputChange("whatYouGet", "description", e.target.value)
-                }
-              />
-              <button
-                className="bg-green-500 text-white px-4 py-2 rounded"
-                onClick={() => addNewItem("whatYouGet")}
-                type="button"
-              >
-                Add
-              </button>
-            </div>
-
-            {courseData.whatYouGet.map((item, index) => (
-              <div
-                className="mb-4 border border-gray-200 p-4 rounded"
-                key={index}
-              >
-                <div className="flex justify-between items-center">
-                  <p className="font-bold">{item.title}</p>
-                  <div className="flex space-x-2">
-                    
-                    <Trash
-                      className="w-5 h-5 cursor-pointer"
-                      onClick={() => removeItem("whatYouGet", index)}
-                    />
-                    <Edit
-                      className="w-5 h-5 cursor-pointer"
-                      onClick={() => setEditValues1("whatYouGet", item, index)}
-                    />
-                   
-                  </div>
-                </div>
-                <p className="text-sm text-gray-700">{item.description}</p>
-              </div>
-            ))}
-
-          
-            <p className="mt-6 mb-2 font-semibold">Who Is This For</p>
-            <div className="flex gap-2 mb-4">
-              <input
-                type="text"
-                className="flex-1 border border-gray-300 rounded px-4 py-2"
-                value={currentWhoIsThisFor.text}
-                placeholder="Content"
-                onChange={(e) =>
-                  handleInputChange("whoIsThisFor", "text", e.target.value)
-                }
-              />
-              <button
-                className="bg-green-500 text-white px-4 py-2 rounded"
-                onClick={() => addNewItem("whoIsThisFor")}
-                type="button"
-              >
-                Add
-              </button>
-            </div>
-
-            {courseData.whoIsThisFor.map((item, index) => (
-              <div
-                className="mb-4 border border-gray-200 p-4 rounded"
-                key={index}
-              >
-                <div className="flex justify-between items-center">
-                  <p>{item.text}</p>
-                  <div className="flex space-x-2">
-                    <Trash
-                      className="cursor-pointer w-5 h-5"
-                      onClick={() => removeItem("whoIsThisFor", index)}
-                    />
-                    <Edit
-                      className="cursor-pointer w-5 h-5"
-                      onClick={() =>
-                        setEditValues1("whoIsThisFor", item, index)
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div> */}
         </form>
 
         {/* Right Side Lesson Form */}
@@ -596,7 +477,7 @@ const AddNewCourse = () => {
                 <img
                   src={NoLesson}
                   alt="no-lesson"
-                  className=" inset-0 object-fill"
+                  className="inset-0 object-fill"
                 />
               </div>
             )}

@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { User } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
 import { GetAllNotifications, MarkNotificationAsRead } from '../../service/api'; // Adjust the import path as needed
 
 function Notification({ onClose }) {
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const notificationRef = useRef(null); // Ref to track the notification panel
 
   // Fetch notifications from API
   useEffect(() => {
@@ -53,20 +53,31 @@ function Notification({ onClose }) {
     }
   };
 
+  // Handle click outside to close
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        onClose(); // Call onClose when clicking outside
+      }
+    };
+
+    // Add event listener for clicks
+    document.addEventListener('mousedown', handleClickOutside);
+
+    // Cleanup event listener on component unmount
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onClose]);
+
   // Calculate number of unread notifications (used only for internal logic, not display)
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
-    <div className="absolute right-0 mt-2 bg-white rounded-lg shadow-md p-6 w-[400px] z-40">
-      <div className="flex justify-between items-center mb-3">
-        <div className="flex items-center">
-          <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-2">
-            <User className="w-5 h-5 text-gray-500" />
-          </div>
-          <h2 className="text-sm font-semibold text-gray-800">Welcome back</h2>
-        </div>
-      </div>
-
+    <div
+      ref={notificationRef} // Attach ref to the notification panel
+      className="absolute right-0 mt-2 bg-white rounded-lg shadow-md p-6 w-[400px] z-40"
+    >
       {isLoading && (
         <div className="text-center text-gray-500 text-sm">Loading...</div>
       )}

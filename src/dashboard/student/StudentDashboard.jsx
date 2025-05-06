@@ -3,7 +3,7 @@ import PageHeader from "../../components/PageHeader";
 import TodoWidget from "../../components/TodoWedget";
 import { useNavigate } from "react-router";
 import { useState, useEffect } from "react";
-import { CourseProgressGet, GetCourseEnrollment } from "../../service/api";
+import { GetCourseProgress, GetCourseEnrollment } from "../../service/api";
 
 function StudentDashboard() {
   const navigate = useNavigate();
@@ -27,7 +27,7 @@ function StudentDashboard() {
         const courseProgressArray = [];
 
         for (const course of enrolledCourses) {
-          const res = await CourseProgressGet({
+          const res = await GetCourseProgress({
             userId: userData.user._id,
             courseId: course.courseId._id,
           });

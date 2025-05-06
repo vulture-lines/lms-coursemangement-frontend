@@ -45,12 +45,12 @@ function AdminDashboard() {
     { name: "May", purchased: 200 },
   ];
 
-  const mentors = users.filter((user) => user.role === "Mentor").length;
-  const students = users.filter((user) => user.role === "Student").length;
+  const buyers = users.filter((user) => user.role === "Student").length;
+  const totalCourses = courses.length;
 
   const pieData = [
-    { name: "Mentors", value: mentors },
-    { name: "Students", value: students },
+    { name: "Courses", value: totalCourses },
+    { name: "Buyers", value: buyers },
   ];
 
   const COLORS = ["#00C49F", "#FFBB28"];
@@ -66,34 +66,6 @@ function AdminDashboard() {
 
       {/* Counter Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
-        {/* Mentors Card */}
-        <div className="bg-white p-4 md:p-6 rounded-lg shadow-md flex justify-between items-center">
-          <div>
-            <h2 className="text-sm md:text-lg font-semibold text-gray-700">
-              Total Mentors
-            </h2>
-            <p className="text-2xl md:text-3xl font-bold text-green-600">
-              {mentors || 0}
-            </p>
-          </div>
-          <div className="bg-green-100 p-2 md:p-4 rounded-full">
-            <svg
-              className="w-6 h-6 md:w-8 md:h-8 text-green-600"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-          </div>
-        </div>
-
         {/* Students Card */}
         <div className="bg-white p-4 md:p-6 rounded-lg shadow-md flex justify-between items-center">
           <div>
@@ -101,7 +73,7 @@ function AdminDashboard() {
               Total Students
             </h2>
             <p className="text-2xl md:text-3xl font-bold text-blue-600">
-              {students || 0}
+              {buyers || 0}
             </p>
           </div>
           <div className="bg-blue-100 p-2 md:p-4 rounded-full">
@@ -176,10 +148,10 @@ function AdminDashboard() {
           </div>
         </div>
 
-        {/* Pie Chart: Mentors vs Students */}
+        {/* Pie Chart: Courses vs Buyers */}
         <div className="bg-white p-4 md:p-6 rounded-lg shadow-md w-full">
           <h2 className="text-lg md:text-xl font-semibold text-gray-800 mb-3 md:mb-4">
-            Mentors vs Students
+            Courses vs Buyers
           </h2>
           <div className="h-64 sm:h-72 md:h-80">
             <ResponsiveContainer width="100%" height="100%">

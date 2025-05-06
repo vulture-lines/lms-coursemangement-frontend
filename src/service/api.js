@@ -45,15 +45,25 @@ export const Logout = async () => {
 //
 //
 // =================================  user section ========================
+
 // Get all users
 export const GetAllUsers = async () => {
   try {
     const res = await axios.get(`${baseUrl}/api/users`);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message || error.message || "Failed to fetch users"
-    );
+    throw error.response?.data?.message || error.message || "Failed to fetch users";
+  }
+};
+
+// Get user by ID
+export const GetUserById = async (userId) => {
+  try {
+    if (!userId) throw new Error("User ID is required");
+    const res = await axios.get(`${baseUrl}/api/users/${userId}`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to fetch user";
   }
 };
 
@@ -63,25 +73,17 @@ export const UpdateUserById = async (userId, userData) => {
     const res = await axios.put(`${baseUrl}/api/users/${userId}`, userData);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message || error.message || "Failed to update user"
-    );
+    throw error.response?.data?.message || error.message || "Failed to update user";
   }
 };
 
 // Update user approval status
 export const UpdateUserApproval = async (userId, isApproved) => {
   try {
-    const res = await axios.put(`${baseUrl}/api/users/approve/${userId}`, {
-      isApproved,
-    });
+    const res = await axios.put(`${baseUrl}/api/users/approve/${userId}`, { isApproved });
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to update approval status"
-    );
+    throw error.response?.data?.message || error.message || "Failed to update approval status";
   }
 };
 
@@ -91,11 +93,10 @@ export const DeleteUserById = async (userId) => {
     const res = await axios.delete(`${baseUrl}/api/users/${userId}`);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message || error.message || "Failed to delete user"
-    );
+    throw error.response?.data?.message || error.message || "Failed to delete user";
   }
 };
+
 // =================================  user section ========================
 //
 //
@@ -110,15 +111,11 @@ export const GetAllCourses = async () => {
     return res.data;
   } catch (error) {
     console.error("Error fetching all courses:", error);
-    throw (
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to fetch courses"
-    );
+    throw error.response?.data?.message || error.message || "Failed to fetch courses";
   }
 };
 
-// Get all courses by id
+// Get course by ID
 export const GetCourseById = async (id) => {
   try {
     if (!id) throw new Error("Course ID is required");
@@ -126,11 +123,10 @@ export const GetCourseById = async (id) => {
     return res.data;
   } catch (error) {
     console.error(`Error fetching course with ID ${id}:`, error);
-    throw (
-      error.response?.data?.message || error.message || "Failed to fetch course"
-    );
+    throw error.response?.data?.message || error.message || "Failed to fetch course";
   }
 };
+
 // Add new course
 export const AddNewCourseApi = async (courseData) => {
   try {
@@ -138,38 +134,28 @@ export const AddNewCourseApi = async (courseData) => {
     return res.data;
   } catch (error) {
     console.error("Error adding new course:", error);
-    throw (
-      error.response?.data?.message || error.message || "Failed to add course"
-    );
+    throw error.response?.data?.message || error.message || "Failed to add course";
   }
 };
 
-// Update course by id
+// Update course by ID
 export const UpdateCourseById = async (courseData, id) => {
   try {
     const res = await axios.put(`${baseUrl}/api/courses/${id}`, courseData);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to update course"
-    );
+    throw error.response?.data?.message || error.message || "Failed to update course";
   }
 };
 
-// Delete course by id
+// Delete course by ID
 export const DeleteCourseById = async (id) => {
   try {
     const res = await axios.delete(`${baseUrl}/api/courses/${id}`);
     return res.data;
   } catch (error) {
     console.error(`Error deleting course with ID ${id}:`, error);
-    throw (
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to delete course"
-    );
+    throw error.response?.data?.message || error.message || "Failed to delete course";
   }
 };
 
@@ -183,6 +169,7 @@ export const CreateCourseEnrollment = async ({ courseId }) => {
     return error.response?.data?.message;
   }
 };
+
 // Get Course Enrollment
 export const GetCourseEnrollment = async ({ userId }) => {
   try {
@@ -197,9 +184,7 @@ export const GetCourseEnrollment = async ({ userId }) => {
 // Update Course Enrollment
 export const UpdateCourseEnrollment = async ({ userId, courseId }) => {
   try {
-    const res = await axios.put(
-      `${baseUrl}/api/enrollments/${userId}/${courseId}`
-    );
+    const res = await axios.put(`${baseUrl}/api/enrollments/${userId}/${courseId}`);
     return res.data;
   } catch (error) {
     console.error(error);
@@ -210,10 +195,7 @@ export const UpdateCourseEnrollment = async ({ userId, courseId }) => {
 // Course Progress post method
 export const CourseProgressPost = async ({ userId, courseId, payload }) => {
   try {
-    const res = await axios.post(
-      `${baseUrl}/api/courseProgress/${userId}/${courseId}`,
-      payload
-    );
+    const res = await axios.post(`${baseUrl}/api/courseProgress/${userId}/${courseId}`, payload);
     return res.data;
   } catch (error) {
     console.error(error);
@@ -224,21 +206,74 @@ export const CourseProgressPost = async ({ userId, courseId, payload }) => {
 // Course Progress Get method
 export const CourseProgressGet = async ({ userId, courseId }) => {
   try {
-    const res = await axios.get(
-      `${baseUrl}/api/courseProgress/${userId}/${courseId}`
-    );
+    const res = await axios.get(`${baseUrl}/api/courseProgress/${userId}/${courseId}`);
     return res.data;
   } catch (error) {
     console.error(error);
     return error.response?.data?.message;
   }
 };
+
+// Create or update course progress
+export const UpdateCourseProgress = async (userId, courseId, progressData) => {
+  try {
+    const res = await axios.post(`${baseUrl}/api/courseProgress/${userId}/${courseId}`, progressData);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to update course progress";
+  }
+};
+
+// Get course progress for a specific user and course
+export const GetCourseProgress = async (userId, courseId) => {
+  try {
+    const res = await axios.get(`${baseUrl}/api/courseProgress/${userId}/${courseId}`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to fetch course progress";
+  }
+};
+
+// Get all course progress for all users and courses
+export const GetAllCourseProgress = async () => {
+  try {
+    const res = await axios.get(`${baseUrl}/api/courseProgress`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to fetch all course progress";
+  }
+};
+
+// Submit answers for a sublesson
+export const SubmitAnswers = async ({ courseId, sublessonIndex, payload }) => {
+  try {
+    const res = await axios.post(`${baseUrl}/api/answers/${courseId}/${sublessonIndex}`, payload);
+    return res.data;
+  } catch (error) {
+    console.error(`Error submitting answers for course ${courseId}:`, error);
+    throw error.response?.data?.message || error.message || "Failed to submit answers";
+  }
+};
+
+// Get all test results for the user
+export const GetUserTestResults = async (userId) => {
+  try {
+    if (!userId) throw new Error("User ID is required");
+    const res = await axios.get(`${baseUrl}/api/answers/${userId}`);
+    return res.data.answers;
+  } catch (error) {
+    console.error(`Error fetching test results for user ${userId}:`, error);
+    throw error.response?.data?.message || error.message || "Failed to fetch test results";
+  }
+};
+
 // =================================  course section ========================
 //
 //
 //
 //
 // =================================  Upload file section ========================
+
 // without type
 export const UploadFile = async (file) => {
   try {
@@ -257,19 +292,15 @@ export const UploadFile = async (file) => {
     return error.message;
   }
 };
+
 // with type
 export const UploadFileWithType = async (file) => {
   try {
-    const res = await axios.post(
-      `https://z-backend-2xag.onrender.com/api/upload/type`,
-      file,
-      {
-        // const res = await axios.post(`${baseUrl}/api/upload/type`, file, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }
-    );
+    const res = await axios.post(`https://z-backend-2xag.onrender.com/api/upload/type`, file, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
     console.log(res.data);
 
     if (res.status === 200) {
@@ -280,33 +311,21 @@ export const UploadFileWithType = async (file) => {
     return error?.response?.data?.message || error.message || "Upload failed";
   }
 };
-// =================================  Upload file section ========================
 
 // =================================  Upload file section ========================
 //
 //
 //
 //
-//
-//
-//
-//
-//// ================================= Announcement section ========================
+// ================================= Announcement section ========================
 
 // Create announcement
 export const CreateAnnouncement = async (announcementData) => {
   try {
-    const res = await axios.post(
-      `${baseUrl}/api/announcements`,
-      announcementData
-    );
+    const res = await axios.post(`${baseUrl}/api/announcements`, announcementData);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to create announcement"
-    );
+    throw error.response?.data?.message || error.message || "Failed to create announcement";
   }
 };
 
@@ -316,11 +335,7 @@ export const GetAllAnnouncements = async () => {
     const res = await axios.get(`${baseUrl}/api/announcements/all`);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to fetch announcements"
-    );
+    throw error.response?.data?.message || error.message || "Failed to fetch announcements";
   }
 };
 
@@ -330,165 +345,132 @@ export const GetAnnouncementById = async (id) => {
     const res = await axios.get(`${baseUrl}/api/announcements/${id}`);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to fetch announcement"
-    );
+    throw error.response?.data?.message || error.message || "Failed to fetch announcement";
   }
 };
 
 // Update announcement
 export const UpdateAnnouncement = async (id, updateData) => {
   try {
-    const res = await axios.put(
-      `${baseUrl}/api/announcements/${id}`,
-      updateData
-    );
+    const res = await axios.put(`${baseUrl}/api/announcements/${id}`, updateData);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to update announcement"
-    );
+    throw error.response?.data?.message || error.message || "Failed to update announcement";
   }
 };
 
 // ================================= Announcement section ========================
 //
-// =================================  forum section ========================
+//
+//
+//
+// ================================= Forum Section ========================
 
-// Add forum post
-export const addFormPost = async (post) => {
+// Create a new forum post
+export const CreateForumPost = async (postData) => {
   try {
-    const res = await axios.post(`${baseUrl}/api/forum`, post, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    const res = await axios.post(`${baseUrl}/api/forum/`, postData);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to add forum post"
-    );
+    throw error.response?.data?.message || error.message || "Failed to create forum post";
   }
 };
 
 // Get all forum posts
-export const getAllFormPost = async () => {
+export const GetAllForumPosts = async () => {
   try {
-    const res = await axios.get(`${baseUrl}/api/forum`);
+    const res = await axios.get(`${baseUrl}/api/forum/`);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to fetch forum posts"
-    );
+    throw error.response?.data?.message || error.message || "Failed to fetch forum posts";
   }
 };
 
-// Get forum post by ID
-export const getFormPost = async (id) => {
+// Get a single forum post by ID
+export const GetForumPostById = async (postId) => {
   try {
-    const res = await axios.get(`${baseUrl}/api/forum/${id}`);
+    const res = await axios.get(`${baseUrl}/api/forum/${postId}`);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to fetch forum post"
-    );
+    throw error.response?.data?.message || error.message || "Failed to fetch forum post";
   }
 };
 
-// Edit forum post
-export const editFormPost = async (id, post) => {
+// Add a reply to a forum post
+export const AddForumReply = async (postId, replyData) => {
   try {
-    const res = await axios.put(`${baseUrl}/api/forum/${id}`, post, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    const res = await axios.post(`${baseUrl}/api/forum/${postId}/reply`, replyData);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to edit forum post"
-    );
+    throw error.response?.data?.message || error.message || "Failed to add reply";
   }
 };
 
-// Add forum post reply
-export const addFormPostComment = async (id, payload) => {
+// Update a forum post
+export const UpdateForumPost = async (postId, postData) => {
   try {
-    const res = await axios.post(`${baseUrl}/api/forum/${id}/reply`, payload, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    const res = await axios.put(`${baseUrl}/api/forum/${postId}`, postData);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message || error.message || "Failed to add reply"
-    );
+    throw error.response?.data?.message || error.message || "Failed to update forum post";
   }
 };
 
-// Update reply
-export const updateFormCommentReply = async (postId, replyId, payload) => {
+// Update a reply
+export const UpdateForumReply = async (postId, replyId, replyData) => {
   try {
-    const res = await axios.put(
-      `${baseUrl}/api/forum/${postId}/reply/${replyId}`,
-      payload,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }
-    );
+    const res = await axios.put(`${baseUrl}/api/forum/${postId}/reply/${replyId}`, replyData);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message || error.message || "Failed to update reply"
-    );
+    throw error.response?.data?.message || error.message || "Failed to update reply";
   }
 };
 
-// Like forum post
-export const likeForumPost = async (postId) => {
+// Like a forum post
+export const LikeForumPost = async (postId) => {
   try {
     const res = await axios.put(`${baseUrl}/api/forum/${postId}/like`);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to like forum post"
-    );
+    throw error.response?.data?.message || error.message || "Failed to like forum post";
   }
 };
 
-// Delete forum post
-export const deleteForumPost = async (postId) => {
+// Delete a forum post
+export const DeleteForumPost = async (postId) => {
   try {
     const res = await axios.delete(`${baseUrl}/api/forum/${postId}`);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to delete forum post"
-    );
+    throw error.response?.data?.message || error.message || "Failed to delete forum post";
   }
 };
 
-// =================================  forum section ========================
+// Delete a reply
+export const DeleteForumReply = async (postId, replyId) => {
+  try {
+    const res = await axios.delete(`${baseUrl}/api/forum/${postId}/reply/${replyId}`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to delete reply";
+  }
+};
 
+// Toggle forum post approval
+export const ToggleForumPostApproval = async (postId, approved) => {
+  try {
+    const res = await axios.put(`${baseUrl}/api/forum/${postId}/approve`, { approved });
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.error || error.message || "Failed to toggle approval status";
+  }
+};
+
+// ================================= Forum Section ========================
+//
+//
+//
+//
 // ================================= Calendar section ========================
 
 // Create calendar event
@@ -497,11 +479,7 @@ export const CreateCalendarEvent = async (eventData) => {
     const res = await axios.post(`${baseUrl}/api/calender`, eventData);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to create calendar event"
-    );
+    throw error.response?.data?.message || error.message || "Failed to create calendar event";
   }
 };
 
@@ -511,11 +489,7 @@ export const GetAllCalendarEvents = async () => {
     const res = await axios.get(`${baseUrl}/api/calender`);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to fetch calendar events"
-    );
+    throw error.response?.data?.message || error.message || "Failed to fetch calendar events";
   }
 };
 
@@ -525,11 +499,7 @@ export const GetCalendarEventById = async (id) => {
     const res = await axios.get(`${baseUrl}/api/calender/${id}`);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to fetch calendar event"
-    );
+    throw error.response?.data?.message || error.message || "Failed to fetch calendar event";
   }
 };
 
@@ -539,11 +509,7 @@ export const UpdateCalendarEventById = async (id, eventData) => {
     const res = await axios.put(`${baseUrl}/api/calender/${id}`, eventData);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to update calendar event"
-    );
+    throw error.response?.data?.message || error.message || "Failed to update calendar event";
   }
 };
 
@@ -553,16 +519,15 @@ export const DeleteCalendarEventById = async (id) => {
     const res = await axios.delete(`${baseUrl}/api/calender/${id}`);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to delete calendar event"
-    );
+    throw error.response?.data?.message || error.message || "Failed to delete calendar event";
   }
 };
 
 // ================================= Calendar section ========================
-
+//
+//
+//
+//
 // ================================= Query Section ========================
 
 // Get all queries
@@ -571,11 +536,7 @@ export const GetAllQueries = async () => {
     const res = await axios.get(`${baseUrl}/api/queries`);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to fetch queries"
-    );
+    throw error.response?.data?.message || error.message || "Failed to fetch queries";
   }
 };
 
@@ -585,44 +546,161 @@ export const CreateQuery = async (queryData) => {
     const res = await axios.post(`${baseUrl}/api/queries`, queryData);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message || error.message || "Failed to create query"
-    );
+    throw error.response?.data?.message || error.message || "Failed to create query";
+  }
+};
+
+// Get a single query by ID
+export const GetQueryById = async (queryId) => {
+  try {
+    const res = await axios.get(`${baseUrl}/api/queries/${queryId}`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to fetch query";
+  }
+};
+
+// Get queries from current student
+export const GetQueriesByCurrentStudent = async (queryId) => {
+  try {
+    const res = await axios.get(`${baseUrl}/api/queries/${queryId}`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to fetch student queries";
+  }
+};
+
+// Update a query by ID (Accept ticket)
+export const UpdateQuery = async (queryId, queryData) => {
+  try {
+    const res = await axios.put(`${baseUrl}/api/queries/accept/${queryId}`, queryData);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to update query";
+  }
+};
+
+// Delete a query by ID
+export const DeleteQuery = async (queryId) => {
+  try {
+    const res = await axios.get(`${baseUrl}/api/queries/${queryId}`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to delete query";
   }
 };
 
 // ================================= Query Section ========================
-
+//
+//
+//
+//
 // ================================= Notification Section ========================
 
+// Create a new notification
+export const CreateNotification = async (notificationData, token) => {
+  try {
+    const res = await axios.post(`${baseUrl}/api/notifications`, notificationData);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to create notification";
+  }
+};
+
 // Get all notifications
-export const GetAllNotifications = async () => {
+export const GetAllNotifications = async (token) => {
   try {
     const res = await axios.get(`${baseUrl}/api/notifications`);
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to fetch notifications"
-    );
+    throw error.response?.data?.message || error.message || "Failed to fetch notifications";
   }
 };
 
-// Mark notification as read
-export const MarkNotificationAsRead = async (id) => {
+// Mark a notification as read
+export const MarkNotificationAsRead = async (notificationId, token) => {
   try {
-    const res = await axios.put(`${baseUrl}/api/notifications/${id}`, {
-      isRead: true,
-    });
+    const res = await axios.put(`${baseUrl}/api/notifications/${notificationId}`, {});
     return res.data;
   } catch (error) {
-    throw (
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to mark notification as read"
-    );
+    throw error.response?.data?.message || error.message || "Failed to mark notification as read";
   }
 };
 
 // ================================= Notification Section ========================
+//
+//
+//
+//
+// ================================= Task Achievement Section ========================
+
+// Create a new task achievement
+export const CreateTaskAchievement = async (achievementData) => {
+  try {
+    const res = await axios.post(`${baseUrl}/api/taskAchievements`, achievementData);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to create task achievement";
+  }
+};
+
+// Get all task achievements
+export const GetAllTaskAchievements = async () => {
+  try {
+    const res = await axios.get(`${baseUrl}/api/taskAchievements`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to fetch task achievements";
+  }
+};
+
+// Get task achievements by user ID
+export const GetTaskAchievementsByUserId = async (userId) => {
+  try {
+    const res = await axios.get(`${baseUrl}/api/taskAchievements/${userId}`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to fetch task achievements for user";
+  }
+};
+
+// Update a task achievement by ID
+export const UpdateTaskAchievement = async (achievementId, achievementData) => {
+  try {
+    const res = await axios.put(`${baseUrl}/api/taskAchievements/${achievementId}`, achievementData);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to update task achievement";
+  }
+};
+
+// Delete a task achievement by ID
+export const DeleteTaskAchievement = async (achievementId) => {
+  try {
+    const res = await axios.delete(`${baseUrl}/api/taskAchievements/${achievementId}`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to delete task achievement";
+  }
+};
+
+// ================================= Task Achievement Section ========================
+//
+//
+//
+//
+// ================================= Course Achievements section ========================
+
+export const GetCourseAchievementsByUserId = async (userId, token) => {
+  try {
+    if (!userId) throw new Error("User ID is required");
+    if (!token) throw new Error("Authorization token is required");
+
+    const res = await axios.get(`${baseUrl}/api/courseAchievements/${userId}`, {});
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to fetch course achievements";
+  }
+};
+
+// ================================= Course Achievements section ========================

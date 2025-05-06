@@ -1,39 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Award } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
-
-// Mock API for achievements (replace with actual API)
-const GetAllAchievements = async () => {
-  // Mock data from AdminAchievements
-  return [
-    {
-      _id: '680f0ad4fc34715866376cb7',
-      title: 'Achievement 1',
-      description: 'Completed Achievement 1',
-      badge: 'gold',
-      user: '680373b6c9e849266316e9da',
-      username: 'ajit1',
-      assignedBy: '680373b6c9e849266316e9da',
-      assignedByUsername: 'ajit1',
-      assignedAt: '2025-04-28T04:57:56.745Z',
-      createdAt: '2025-04-28T04:57:56.746Z',
-      updatedAt: '2025-04-28T04:57:56.746Z',
-    },
-    {
-      _id: '680f0ad4fc34715866376cb8',
-      title: 'Achievement 2',
-      description: 'Completed Achievement 2',
-      badge: 'silver',
-      user: '680373b6c9e849266316e9db',
-      username: 'jane_doe',
-      assignedBy: '680373b6c9e849266316e9da',
-      assignedByUsername: 'ajit1',
-      assignedAt: '2025-04-27T10:30:00.000Z',
-      createdAt: '2025-04-27T10:30:00.000Z',
-      updatedAt: '2025-04-27T10:30:00.000Z',
-    },
-  ];
-};
+import { GetCourseAchievementsByUserId } from '../../service/api'; // Import the new API function
 
 // Utility function to format date
 const formatDate = (dateString) => {
@@ -87,32 +55,29 @@ function Achievements() {
   const [achievements, setAchievements] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  // Mock current user ID (replace with actual user ID from auth context)
+  // Mock current user ID and token (replace with actual values from auth context)
   const currentUserId = '680373b6c9e849266316e9da'; // Example: ajit1's ID
+  const authToken = 'your-jwt-token-here'; // Replace with actual token from auth context
 
   useEffect(() => {
     const fetchAchievements = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const data = await GetAllAchievements();
-        // Filter achievements for the current user
-        const filteredData = data.filter(
-          (achievement) => achievement.user === currentUserId
-        );
-        setAchievements(filteredData);
+        const data = await GetCourseAchievementsByUserId(currentUserId, authToken);
+        setAchievements(data); // API already filters by userId, no client-side filtering needed
       } catch (err) {
-        setError(err.message || 'Failed to load achievements');
+        setError(err.message || 'Failed to load course achievements');
       } finally {
         setIsLoading(false);
       }
     };
     fetchAchievements();
-  }, []);
+  }, [currentUserId, authToken]);
 
   return (
     <>
-      <PageHeader title="Achievements" />
+      <PageHeader title="Course Achievements" />
       <div className="container mx-auto px-6 py-8">
         {isLoading && <div className="text-center text-gray-500">Loading...</div>}
 
@@ -124,7 +89,7 @@ function Achievements() {
 
         {achievements.length === 0 && !isLoading ? (
           <div className="bg-white p-6 rounded-lg shadow-md text-center text-gray-500">
-            No achievements yet.
+            No course achievements yet.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

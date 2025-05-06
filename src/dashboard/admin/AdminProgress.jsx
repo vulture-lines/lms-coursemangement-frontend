@@ -1,41 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
-// Mock API data (simulating GET response with userName added)
-const mockProgressData = [
-  {
-    userId: "6803729bc16eaa98a3c46fff",
-    userName: "John Doe",
-    progress: {
-      courseId: "6805dc3b86355dc131e804c7",
-      courseTitle: "JavaScript Basics",
-      completedLessons: [
-        {
-          lessonIndex: 0,
-          isLessonCompleted: true,
-          sublessons: [
-            { sublessonIndex: 1, isCompleted: true }
-          ],
-          percentage: 100
-        }
-      ],
-      completedLessonCount: 1,
-      percentage: 100,
-      isCompleted: true
-    }
-  },
-  {
-    userId: "68033770c2c0584a3b4af07e",
-    userName: "Jane Smith",
-    progress: {
-      courseId: "6805dc3b86355dc131e804c7",
-      courseTitle: "JavaScript Basics",
-      completedLessons: [],
-      completedLessonCount: 0,
-      percentage: 0,
-      isCompleted: false
-    }
-  }
-];
+import { GetAllCourseProgress } from '../../service/api';
 
 // Simple PageHeader component
 const PageHeader = ({ title }) => (
@@ -75,7 +39,7 @@ const ProgressReportTable = ({ progressData, isLoading, error }) => {
               <th className="px-2">COURSE</th>
               <th className="px-2 w-24">PROGRESS</th>
               <th className="px-2 w-24">COMPLETED LESSONS</th>
-              <th className="px-2 w-56">USER NAME</th>
+              <th className="px-2 w-56">USERNAME</th>
               <th className="px-2 w-24">STATUS</th>
             </tr>
           </thead>
@@ -99,8 +63,8 @@ const ProgressReportTable = ({ progressData, isLoading, error }) => {
                 </td>
               </tr>
             ) : (
-              progressData.map(({ userId, userName, progress }) => (
-                <tr key={userId} className="bg-white text-black font-base h-10 divide-x divide-gray-200">
+              progressData.map(({ userId, username, progress }) => (
+                <tr key={`${userId}-${progress.courseId}`} className="bg-white text-black font-base h-10 divide-x divide-gray-200">
                   <td className="px-2" data-cell="course">
                     {progress.courseTitle}
                   </td>
@@ -110,8 +74,8 @@ const ProgressReportTable = ({ progressData, isLoading, error }) => {
                   <td className="px-2" data-cell="completedLessons">
                     {progress.completedLessonCount}
                   </td>
-                  <td className="px-2" data-cell="userName">
-                    {userName}
+                  <td className="px-2" data-cell="username">
+                    {username}
                   </td>
                   <td className="px-2" data-cell="status">
                     {progress.isCompleted ? "Completed" : "In Progress"}
@@ -132,16 +96,16 @@ const ProgressReportTable = ({ progressData, isLoading, error }) => {
         ) : progressData.length === 0 ? (
           <div className="text-center text-gray-500 py-4">No progress data available.</div>
         ) : (
-          progressData.map(({ userId, userName, progress }) => (
-            <div key={userId} className="grid grid-cols-2 shadow rounded-md p-4 gap-2 text-sm w-full bg-white">
+          progressData.map(({ userId, username, progress }) => (
+            <div key={`${userId}-${progress.courseId}`} className="grid grid-cols-2 shadow rounded-md p-4 gap-2 text-sm w-full bg-white">
               <label className="font-semibold">Course</label>
               <p>{progress.courseTitle}</p>
               <label className="font-semibold">Progress</label>
               <p>{progress.percentage}%</p>
               <label className="font-semibold">Completed Lessons</label>
               <p>{progress.completedLessonCount}</p>
-              <label className="font-semibold">User Name</label>
-              <p>{userName}</p>
+              <label className="font-semibold">Username</label>
+              <p>{username}</p>
               <label className="font-semibold">Status</label>
               <p>{progress.isCompleted ? "Completed" : "In Progress"}</p>
             </div>
@@ -155,86 +119,97 @@ const ProgressReportTable = ({ progressData, isLoading, error }) => {
 // Main AdminProgress component
 const AdminProgress = () => {
   const [progressData, setProgressData] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [userName, setUserName] = useState('');
-  const [lessonIndex, setLessonIndex] = useState('');
-  const [sublessonIndex, setSublessonIndex] = useState('');
-  const [updateError, setUpdateError] = useState(null);
-  const [updateSuccess, setUpdateSuccess] = useState(null);
+  const [filterType, setFilterType] = useState(''); // 'users' or 'courses'
+  const [selectedFilter, setSelectedFilter] = useState(''); // username or courseTitle
+  const [users, setUsers] = useState([]);
+  const [courses, setCourses] = useState([]);
 
-  // Simulate fetching progress data
+  // Fetch all course progress
   useEffect(() => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      setTimeout(() => {
-        setProgressData(mockProgressData);
+    const fetchProgressData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await GetAllCourseProgress();
+        // Flatten the response to [{ userId, username, progress }, ...]
+        const flattenedData = response.flatMap(user =>
+          user.courseProgress.map(progress => ({
+            userId: user._id,
+            username: user.username,
+            progress
+          }))
+        );
+        setProgressData(flattenedData);
+        setFilteredData(flattenedData);
+
+        // Extract unique users and courses
+        const uniqueUsers = [...new Set(response.map(user => user.username))].sort();
+        const uniqueCourses = [...new Set(flattenedData.map(item => item.progress.courseTitle))].sort();
+        setUsers(uniqueUsers);
+        setCourses(uniqueCourses);
+      } catch (err) {
+        setError(err.message || "Failed to load progress data");
+      } finally {
         setIsLoading(false);
-      }, 1000);
-    } catch (err) {
-      setError(err.message || "Failed to load progress data");
-      setIsLoading(false);
-    }
+      }
+    };
+    fetchProgressData();
   }, []);
 
-  // Handle progress update
-  const handleUpdateProgress = async (e) => {
-    e.preventDefault();
-    setUpdateError(null);
-    setUpdateSuccess(null);
+  // Handle filter type change
+  const handleFilterTypeChange = (e) => {
+    setFilterType(e.target.value);
+    setSelectedFilter('');
+    setFilteredData(progressData); // Reset to all data
+  };
 
-    if (!userName || !lessonIndex || !sublessonIndex) {
-      setUpdateError("Please fill in all fields");
-      return;
+  // Handle filter selection change
+  const handleFilterChange = (e) => {
+    const value = e.target.value;
+    setSelectedFilter(value);
+
+    if (!value || value === 'All') {
+      setFilteredData(progressData);
+    } else if (filterType === 'users') {
+      setFilteredData(progressData.filter(item => item.username === value));
+    } else if (filterType === 'courses') {
+      setFilteredData(progressData.filter(item => item.progress.courseTitle === value));
+    }
+  };
+
+  // Calculate statistics
+  const getStats = () => {
+    if (!filterType || !selectedFilter || selectedFilter === 'All') {
+      return null;
     }
 
-    // Map userName to userId for API call (mock mapping)
-    const userMap = {
-      "John Doe": "6803729bc16eaa98a3c46fff",
-      "Jane Smith": "68033770c2c0584a3b4af07e"
-    };
-    const userId = userMap[userName];
-
-    if (!userId) {
-      setUpdateError("User not found");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('authToken'); // Replace with your auth token retrieval method
-      const response = await fetch(
-        `http://localhost:5000/api/courseProgress/${userId}/6805dc3b86355dc131e804c7`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            lessonIndex: parseInt(lessonIndex),
-            sublessonIndex: parseInt(sublessonIndex),
-          }),
-        }
+    if (filterType === 'users') {
+      const userCourses = progressData.filter(item => item.username === selectedFilter);
+      const completedCourses = userCourses.filter(item => item.progress.isCompleted).length;
+      return (
+        <div className="mb-4 p-4 bg-white shadow rounded-md">
+          <h3 className="text-lg font-semibold">User Statistics</h3>
+          <p>Completed Courses: {completedCourses}</p>
+          <p>Total Courses: {userCourses.length}</p>
+        </div>
       );
-
-      if (!response.ok) {
-        throw new Error('Failed to update progress');
-      }
-
-      const result = await response.json();
-      setUpdateSuccess(result.message || 'Progress updated successfully');
-      
-      // Optionally refresh progress data
-      setProgressData((prevData) => {
-        const updatedData = prevData.map((item) =>
-          item.userId === userId ? { ...item, progress: result.progress } : item
-        );
-        return updatedData;
-      });
-    } catch (err) {
-      setUpdateError(err.message || 'Failed to update progress');
+    } else if (filterType === 'courses') {
+      const courseUsers = progressData.filter(item => item.progress.courseTitle === selectedFilter);
+      const completedUsers = courseUsers.filter(item => item.progress.isCompleted).length;
+      const inProgressUsers = courseUsers.filter(item => !item.progress.isCompleted).length;
+      return (
+        <div className="mb-4 p-4 bg-white shadow rounded-md">
+          <h3 className="text-lg font-semibold">Course Statistics</h3>
+          <p>Completed by: {completedUsers} users</p>
+          <p>In Progress: {inProgressUsers} users</p>
+          <p>Total Users: {courseUsers.length}</p>
+        </div>
+      );
     }
+    return null;
   };
 
   return (
@@ -243,51 +218,35 @@ const AdminProgress = () => {
       <div className="px-4 lg:px-8">
         <div className="flex flex-col lg:flex-row items-start justify-between lg:items-center mb-4 gap-4">
           <h3 className="text-base font-medium">Report</h3>
-          <input
-            type="text"
-            placeholder="Search course"
-            className="bg-white px-3 py-1 text-black shadow rounded-md"
-          />
+          <div className="flex gap-4">
+            <select
+              value={filterType}
+              onChange={handleFilterTypeChange}
+              className="bg-white px-3 py-2 text-black shadow rounded-md"
+            >
+              <option value="">Select Filter Type</option>
+              <option value="users">Users</option>
+              <option value="courses">Courses</option>
+            </select>
+            {filterType && (
+              <select
+                value={selectedFilter}
+                onChange={handleFilterChange}
+                className="bg-white px-3 py-2 text-black shadow rounded-md"
+              >
+                <option value="All">All</option>
+                {(filterType === 'users' ? users : courses).map((item) => (
+                  <option key={item} value={item}>{item}</option>
+                ))}
+              </select>
+            )}
+          </div>
         </div>
 
-        {/* Update Progress Form */}
-        <div className="mb-6 p-4 bg-white shadow rounded-md">
-          <h3 className="text-lg font-semibold mb-4">User Progress</h3>
-          {updateError && <p className="text-red-700 mb-2">{updateError}</p>}
-          {updateSuccess && <p className="text-green-700 mb-2">{updateSuccess}</p>}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <input
-              type="text"
-              placeholder="User Name"
-              value={userName}
-              onChange={(e) => setUserName(e.target.value)}
-              className="bg-white px-3 py-2 text-black shadow rounded-md"
-            />
-            <input
-              type="number"
-              placeholder="Lesson Index"
-              value={lessonIndex}
-              onChange={(e) => setLessonIndex(e.target.value)}
-              className="bg-white px-3 py-2 text-black shadow rounded-md"
-            />
-            <input
-              type="number"
-              placeholder="Sublesson Index"
-              value={sublessonIndex}
-              onChange={(e) => setSublessonIndex(e.target.value)}
-              className="bg-white px-3 py-2 text-black shadow rounded-md"
-            />
-          </div>
-          <button
-            onClick={handleUpdateProgress}
-            className="mt-4 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
-          >
-            Update Progress
-          </button>
-        </div>
+        {getStats()}
 
         <ProgressReportTable
-          progressData={progressData}
+          progressData={filteredData}
           isLoading={isLoading}
           error={error}
         />

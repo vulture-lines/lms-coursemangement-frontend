@@ -2,6 +2,11 @@ import React, { useState, useEffect } from "react";
 import { Calendar, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import {
+  CreateCalendarEvent,
+  GetAllCalendarEvents,
+  DeleteCalendarEventById,
+} from "../../service/api";
 
 const localizer = momentLocalizer(moment);
 const colors = ["#10B981", "#3B82F6", "#F59E0B", "#EF4444", "#8B5CF6"];
@@ -14,25 +19,41 @@ function BigCalendar() {
   const [eventToDelete, setEventToDelete] = useState(null);
   const [currentView, setCurrentView] = useState("month");
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [error, setError] = useState(null);
 
+  // Fetch events on component mount
   useEffect(() => {
-    const storedEvents =
-      JSON.parse(localStorage.getItem("calendarEvents")) || [];
-    const formattedEvents = storedEvents.map((event) => ({
-      ...event,
-      start: new Date(event.start),
-      end: new Date(event.end),
-    }));
-    setEvents(formattedEvents);
+    const fetchEvents = async () => {
+      try {
+        const response = await GetAllCalendarEvents();
+        const formattedEvents = response.map((event) => ({
+          id: event._id,
+          title: event.title,
+          start: new Date(event.startDate),
+          end: new Date(event.endDate),
+          color: colors[Math.floor(Math.random() * colors.length)],
+        }));
+        setEvents(formattedEvents);
+        setError(null);
+      } catch (err) {
+        if (err.response?.status === 403 || err.response?.status === 401) {
+          setError("Authentication failed. Please log in again.");
+          // Optionally redirect to login
+          setTimeout(() => {
+            window.location.href = "/login";
+          }, 3000);
+        } else {
+          setError(err.message || "Failed to load events. Please try again.");
+        }
+        console.error("Fetch events error:", err);
+      }
+    };
+    fetchEvents();
   }, []);
 
-  const saveEventsToStorage = (events) => {
-    localStorage.setItem("calendarEvents", JSON.stringify(events));
-  };
-
-  const handleAddEvent = () => {
+  const handleAddEvent = async () => {
     if (!newEvent.title || !newEvent.start || !newEvent.end) {
-      alert("Please fill all fields before adding an event.");
+      setError("Please fill all fields before adding an event.");
       return;
     }
 
@@ -40,35 +61,66 @@ function BigCalendar() {
     const endDate = new Date(newEvent.end);
 
     if (startDate >= endDate) {
-      alert("End date must be after start date.");
+      setError("End date must be after start date.");
       return;
     }
 
-    const newEventObj = {
-      id: Date.now(),
-      title: newEvent.title,
-      start: startDate,
-      end: endDate,
-      color: colors[Math.floor(Math.random() * colors.length)],
-    };
+    try {
+      const eventData = {
+        title: newEvent.title,
+        startDate: startDate.toISOString().split("T")[0],
+        endDate: endDate.toISOString().split("T")[0],
+      };
 
-    const updatedEvents = [...events, newEventObj];
-    setEvents(updatedEvents);
-    saveEventsToStorage(updatedEvents);
-    setShowModal(false);
-    setNewEvent({ title: "", start: "", end: "" });
+      const response = await CreateCalendarEvent(eventData);
+      const newEventObj = {
+        id: response.event._id,
+        title: response.event.title,
+        start: new Date(response.event.startDate),
+        end: new Date(response.event.endDate),
+        color: colors[Math.floor(Math.random() * colors.length)],
+      };
+
+      setEvents([...events, newEventObj]);
+      setShowModal(false);
+      setNewEvent({ title: "", start: "", end: "" });
+      setError(null);
+    } catch (err) {
+      if (err.response?.status === 403 || err.response?.status === 401) {
+        setError("Authentication failed. Please log in again.");
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 3000);
+      } else {
+        setError(err.message || "Failed to create event.");
+      }
+      console.error("Create event error:", err);
+    }
   };
 
-  const handleDeleteEvent = () => {
+  const handleDeleteEvent = async () => {
     if (!eventToDelete || !eventToDelete.id) return;
 
-    const updatedEvents = events.filter(
-      (event) => event.id !== eventToDelete.id
-    );
-    setEvents(updatedEvents);
-    saveEventsToStorage(updatedEvents);
-    setShowDeleteConfirmation(false);
-    setEventToDelete(null);
+    try {
+      await DeleteCalendarEventById(eventToDelete.id);
+      const updatedEvents = events.filter(
+        (event) => event.id !== eventToDelete.id
+      );
+      setEvents(updatedEvents);
+      setShowDeleteConfirmation(false);
+      setEventToDelete(null);
+      setError(null);
+    } catch (err) {
+      if (err.response?.status === 403 || err.response?.status === 401) {
+        setError("Authentication failed. Please log in again.");
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 3000);
+      } else {
+        setError(err.message || "Failed to delete event.");
+      }
+      console.error("Delete event error:", err);
+    }
   };
 
   const handleShowDeleteConfirmation = (event) => {
@@ -84,7 +136,6 @@ function BigCalendar() {
     setCurrentDate(date);
   };
 
-  // Calculate date range for display
   const getDateRange = () => {
     let start, end;
     if (currentView === "month") {
@@ -98,7 +149,7 @@ function BigCalendar() {
       end = moment(currentDate);
     } else if (currentView === "agenda") {
       start = moment(currentDate);
-      end = moment(currentDate).add(30, "days"); // Agenda shows 30 days by default
+      end = moment(currentDate).add(30, "days");
     }
     return `${start.format("DD/MM/YYYY")} – ${end.format("DD/MM/YYYY")}`;
   };
@@ -113,7 +164,6 @@ function BigCalendar() {
             justify-content: space-between;
             align-items: center;
           }
-
           .rbc-toolbar button {
             padding: 6px 12px;
             margin: 0 4px;
@@ -123,34 +173,28 @@ function BigCalendar() {
             cursor: pointer;
             font-size: 14px;
           }
-
           .rbc-toolbar button:hover {
             background-color: #f0f0f0;
           }
-
           .rbc-toolbar .rbc-btn-group button.rbc-active {
             background-color: #10B981;
             color: white;
             border-color: #10B981;
           }
-
           .rbc-toolbar button:focus {
             outline: none;
             box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
           }
-
           .rbc-agenda-view table {
             width: 100%;
             border-collapse: collapse;
           }
-
           .rbc-agenda-view .rbc-agenda-table th,
           .rbc-agenda-view .rbc-agenda-table td {
             padding: 8px;
             border: 1px solid #ddd;
             text-align: left;
           }
-
           .rbc-agenda-view .rbc-agenda-table th {
             background-color: #f4f4f4;
             font-weight: bold;
@@ -167,6 +211,11 @@ function BigCalendar() {
             Add Event
           </button>
         </div>
+        {error && (
+          <div className="text-red-600 mb-4" role="alert">
+            {error}
+          </div>
+        )}
         <div className="w-full h-full">
           <Calendar
             localizer={localizer}
@@ -288,6 +337,7 @@ function BigCalendar() {
                   onClick={() => {
                     setShowModal(false);
                     setNewEvent({ title: "", start: "", end: "" });
+                    setError(null);
                   }}
                 >
                   Cancel
@@ -325,6 +375,7 @@ function BigCalendar() {
                   onClick={() => {
                     setShowDeleteConfirmation(false);
                     setEventToDelete(null);
+                    setError(null);
                   }}
                 >
                   Cancel

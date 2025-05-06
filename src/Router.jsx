@@ -16,7 +16,8 @@ import AdminNotification from "./dashboard/admin/AdminNotification";
 import AdminCalendar from "./dashboard/admin/AdminCalendar";
 import AdminAchievements from "./dashboard/admin/AdminAchievements";
 import AdminProgress from "./dashboard/admin/AdminProgress";
-import AdminQuery from "./dashboard/admin/AdminQuery";
+import AdminQuery from "./dashboard/admin/AdminQuery";``
+import AdminForumPage from "./dashboard/admin/AdminForumPage";
 // Student
 import StudentLayout from "./dashboard/student/StudentLayout";
 import StudentDashboard from "./dashboard/student/StudentDashboard";
@@ -109,7 +110,7 @@ export const Router = createBrowserRouter([
       },
       {
         path: "forum",
-        element: <ForumPage />,
+        element: <AdminForumPage />,
       },
     ],
   },

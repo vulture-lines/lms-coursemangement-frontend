@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-// import { deleteCourse, updateCourse } from "../../../api/baseApi";
 import NewLesson from "./NewLesson";
-// import { convertToCourseFormData } from "../../../hooks/newCourseFunctions";
 import axios from "axios";
 import {
   DeleteCourseById,
@@ -11,73 +9,128 @@ import {
 } from "../../service/api";
 import NoLesson from "../../assets/no-lesson-illustration.svg";
 import { ArrowLeft, Edit, Trash } from "lucide-react";
-import { convertToCourseFormData } from "../../hook/CourseFunction";
-// const apiBaseUrl = process.env.REACT_APP_API_BASE_URL;
+
 const EditCourse = () => {
-  // State for "What You Get" section
+  const navigate = useNavigate();
+  const { id } = useParams();
+
+  const [popupOpen, setPopupOpen] = useState({ open: false, data: null });
+  const [editCourse, setEditCourse] = useState(false);
+  const [error, setError] = useState(null);
+  const [currentOverview, setCurrentOverview] = useState({
+    heading: "",
+    content: "",
+    updateIndex: null,
+  });
   const [currentWhatYouGet, setWhatYouGet] = useState([]);
   const [currentGet, setCurrentGet] = useState({ title: "", description: "" });
   const [editIndexGet, setEditIndexGet] = useState(null);
-
-  // State for "Who Is This For" section
   const [whoIsThisFor, setWhoIsThisFor] = useState([]);
   const [currentWho, setCurrentWho] = useState({ text: "" });
   const [editIndexWho, setEditIndexWho] = useState(null);
 
-  // Handle input change for "What You Get"
+  const [courseData, setCourseData] = useState({
+    title: "",
+    description: "",
+    price: null,
+    thumbnail: null,
+    overviewPoints: [],
+    lessons: [],
+    whatYouGet: [],
+    whoIsThisFor: [],
+  });
+
+  useEffect(() => {
+    if (popupOpen.open) window.scrollTo(0, 0);
+  }, [popupOpen]);
+
+  useEffect(() => {
+    const fetchCourseDetails = async () => {
+      try {
+        const res = await GetCourseById(id);
+        const safeCourseData = {
+          title: res.title || "",
+          description: res.description || "",
+          price: res.price || null,
+          thumbnail: res.thumbnail || null,
+          overviewPoints: Array.isArray(res.overviewPoints) ? res.overviewPoints : [],
+          lessons: Array.isArray(res.lessons)
+            ? res.lessons.map(lesson => ({
+                ...lesson,
+                chapter: Array.isArray(lesson.chapter)
+                  ? lesson.chapter.map(video => ({
+                      title: video.title || "",
+                      duration: video.duration || "",
+                      url: video.url || "",
+                    }))
+                  : [],
+              }))
+            : [],
+          whatYouGet: Array.isArray(res.whatYouGet) ? res.whatYouGet : [],
+          whoIsThisFor: Array.isArray(res.whoIsThisFor) ? res.whoIsThisFor : [],
+        };
+        setCourseData(safeCourseData);
+      } catch (error) {
+        console.error("Failed to fetch course:", error);
+        setError("Failed to load course data. Please try again.");
+      }
+    };
+    fetchCourseDetails();
+  }, [id]);
+
+  const validateCourseData = () => {
+    const errors = {};
+    if (!courseData.title) errors.title = "Course title is required";
+    if (!courseData.description) errors.description = "Description is required";
+    if (!courseData.price || isNaN(courseData.price) || courseData.price <= 0) {
+      errors.price = "Valid price is required";
+    }
+    return errors;
+  };
+
+  const handledirectInput = (type, value) => {
+    if (type === "price") {
+      const numericValue = parseFloat(value);
+      setCourseData({
+        ...courseData,
+        [type]: isNaN(numericValue) ? "" : numericValue,
+      });
+    } else {
+      setCourseData({ ...courseData, [type]: value });
+    }
+  };
+
+  const handleOverviewInput = (type, value) => {
+    setCurrentOverview({ ...currentOverview, [type]: value });
+  };
+
   const handleWhatYouGetInput = (key, value) => {
     setCurrentGet({ ...currentGet, [key]: value });
   };
 
-  // Handle input change for "Who Is This For"
   const handleWhoIsThisForInput = (value) => {
     setCurrentWho({ text: value });
   };
 
-  const handleAddWhoIsThisFor = (event) => {
-    event.preventDefault();
-    if (currentWho.text) {
-      const newWhoIsThisFor = [...courseData.whoIsThisFor]; // Clone existing array
-
-      if (editIndexWho !== null) {
-        newWhoIsThisFor[editIndexWho] = { text: currentWho.text };
+  const addNewOverview = () => {
+    if (currentOverview.heading && currentOverview.content) {
+      const newOverview = [...courseData.overviewPoints];
+      if (currentOverview.updateIndex === null || currentOverview.updateIndex === undefined) {
+        newOverview.push({
+          ...currentOverview,
+          updateIndex: newOverview.length > 0 ? newOverview.length : 0,
+        });
       } else {
-        newWhoIsThisFor.push({ text: currentWho.text });
+        newOverview[currentOverview.updateIndex] = currentOverview;
       }
-
-      setCourseData({ ...courseData, whoIsThisFor: newWhoIsThisFor }); // Update state
-
-      setCurrentWho({ text: "" });
-      setEditIndexWho(null);
+      setCourseData({ ...courseData, overviewPoints: newOverview });
+      setCurrentOverview({ heading: "", content: "", updateIndex: null });
     }
-  };
-
-  // Remove "What You Get"
-  const handleRemoveWhatYouGet = (index) => {
-    setWhatYouGet(currentWhatYouGet.filter((_, i) => i !== index));
-  };
-
-  const handleRemoveWhoIsThisFor = (index) => {
-    const updatedList = courseData.whoIsThisFor.filter((_, i) => i !== index);
-    setCourseData({ ...courseData, whoIsThisFor: updatedList });
-  };
-
-  // Set edit values for "What You Get"
-  const setEditValuesGet = (item, index) => {
-    setCurrentGet(item);
-    setEditIndexGet(index);
-  };
-
-  // Set edit values for "Who Is This For"
-  const setEditValuesWho = (item, index) => {
-    setCurrentWho(item);
-    setEditIndexWho(index);
   };
 
   const addNewWhatYouGet = () => {
     if (currentGet.title && currentGet.description) {
-      const newWhatYouGet = [...courseData.whatYouGet]; // Clone the existing array
-
+      const newWhatYouGet = [...courseData.whatYouGet];
       if (editIndexGet === null) {
         newWhatYouGet.push({
           title: currentGet.title,
@@ -89,9 +142,7 @@ const EditCourse = () => {
           description: currentGet.description,
         };
       }
-
       setCourseData({ ...courseData, whatYouGet: newWhatYouGet });
-
       setCurrentGet({ title: "", description: "" });
       setEditIndexGet(null);
     }
@@ -99,169 +150,34 @@ const EditCourse = () => {
 
   const addNewWhoIsThisFor = () => {
     if (currentWho.text) {
-      const newWhoIsThisFor = [...courseData.whoIsThisFor]; // Clone the existing array
-
+      const newWhoIsThisFor = [...courseData.whoIsThisFor];
       if (editIndexWho === null) {
-        newWhoIsThisFor.push({
-          text: currentWho.text,
-        });
+        newWhoIsThisFor.push({ text: currentWho.text });
       } else {
-        newWhoIsThisFor[editIndexWho] = {
-          text: currentWho.text,
-        };
+        newWhoIsThisFor[editIndexWho] = { text: currentWho.text };
       }
-
       setCourseData({ ...courseData, whoIsThisFor: newWhoIsThisFor });
-
       setCurrentWho({ text: "" });
       setEditIndexWho(null);
     }
   };
-  const navigate = useNavigate();
-  const { id } = useParams();
-  console.log(id);
-
-  const [popupOpen, setPopupOpen] = useState({ open: false, data: null });
-  const [editCourse, setEditCourse] = useState(false);
-  const [currentOverview, setCurrentOverview] = useState({
-    heading: "",
-    content: "",
-    updateIndex: null,
-  });
-
-  const [courseData, setCourseData] = useState({
-    title: "",
-    description: "",
-    price: null,
-    thumbnail: null,
-    overviewPoints: [],
-    lessons: [],
-  });
-
-  useEffect(() => {
-    if (popupOpen) window.scrollTo(0, 0);
-  }, [popupOpen]);
-
-  // useEffect(() => {
-  //   setCourseData(courseDetails);
-  // }, [courseDetails]);
-
-  useEffect(() => {
-    const fetchCourseDetails = async () => {
-      const res = await GetCourseById(id);
-      console.log("Course data", res);
-      setCourseData(res);
-    };
-    fetchCourseDetails();
-  }, [id]);
-
-  const handledirectInput = (type, value) => {
-    if (type === "price") {
-      // Ensure price is stored as a number
-      const numericValue = parseFloat(value);
-      setCourseData({
-        ...courseData,
-        [type]: isNaN(numericValue) ? "" : numericValue,
-      });
-    } else {
-      setCourseData({ ...courseData, [type]: value });
-    }
-  };
-  const handleOverviewInput = (type, value) => {
-    setCurrentOverview({ ...currentOverview, [type]: value });
-  };
-
-  const addNewOverview = () => {
-    if (currentOverview.heading && currentOverview.content) {
-      const newOverview = courseData.overviewPoints;
-      if (
-        currentOverview.updateIndex === null ||
-        currentOverview.updateIndex === undefined
-      ) {
-        newOverview.push({
-          ...currentOverview,
-          updateIndex: newOverview.length > 0 ? newOverview?.length : 0,
-        });
-        setCourseData({ ...courseData, overviewPoints: newOverview });
-      } else {
-        newOverview[currentOverview?.updateIndex] = currentOverview;
-        setCourseData({ ...courseData, overviewPoints: newOverview });
-      }
-      setCurrentOverview({
-        heading: "",
-        content: "",
-        updateIndex: null,
-      });
-    }
-  };
-
-  const addLessontoCourse = (lesson) => {
-    console.log("lesson", lesson);
-    const newLessons = [...courseData.lessons];
-    if (lesson?.updateIndex === null || lesson?.updateIndex === undefined) {
-      newLessons.push({
-        ...lesson,
-        updateIndex: newLessons?.length > 0 ? newLessons?.length : 0,
-      });
-      setCourseData({ ...courseData, lessons: newLessons });
-    } else {
-      newLessons[lesson.updateIndex] = lesson;
-      setCourseData({ ...courseData, lessons: newLessons });
-    }
-    setPopupOpen({ open: false });
-  };
-
-  const uploadCourse = async () => {
-    try {
-      // const courseFormData = convertToCourseFormData(courseData);
-      // const data = await axios.put(
-      //   `${apiBaseUrl}/courseDetail/edit/${id}`,
-      //   courseFormData
-      // );
-      const res = await UpdateCourseById(courseData, id);
-      console.log("Course updated", res);
-      console.log(res);
-      navigate("/admin/courses");
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  console.log(courseData);
-
-  const deleteThisCourse = async () => {
-    const confirm = window.confirm(
-      "Confirm to delete this course. All lessons associated will be lost."
-    );
-    if (confirm) {
-      try {
-        // const res = await deleteCourse(courseDetails._id);
-        const res = await DeleteCourseById(courseData._id);
-        if (res) {
-          navigate("/admin/courses");
-        }
-      } catch (error) {
-        console.log(error);
-      }
-    }
-  };
 
   const handleRemoveOverview = (index) => {
-    const newOverviews = [...courseData?.overviewPoints];
+    const newOverviews = [...courseData.overviewPoints];
     newOverviews.splice(index, 1);
     setCourseData({ ...courseData, overviewPoints: newOverviews });
   };
 
-  const removeLessonFromCourse = (lesson) => {
-    const newLessons = [...courseData.lessons];
-    newLessons.splice(lesson.updateIndex, 1);
-    console.log(newLessons);
-    setCourseData({ ...courseData, lessons: newLessons });
+  const handleRemoveWhatYouGet = (index) => {
+    const newWhatYouGet = [...courseData.whatYouGet];
+    newWhatYouGet.splice(index, 1);
+    setCourseData({ ...courseData, whatYouGet: newWhatYouGet });
   };
 
-  const openEditLesson = (lesson, index) => {
-    lesson.updateIndex = index;
-    setPopupOpen({ open: true, data: lesson });
+  const handleRemoveWhoIsThisFor = (index) => {
+    const newWhoTuesdayFor = [...courseData.whoIsThisFor];
+    newWhoTuesdayFor.splice(index, 1);
+    setCourseData({ ...courseData, whoIsThisFor: newWhoTuesdayFor });
   };
 
   const setEditValues = (overview, index) => {
@@ -269,13 +185,106 @@ const EditCourse = () => {
     setCurrentOverview(overview);
   };
 
-  console.log(courseData);
+  const setEditValuesGet = (item, index) => {
+    setCurrentGet(item);
+    setEditIndexGet(index);
+  };
+
+  const setEditValuesWho = (item, index) => {
+    setCurrentWho(item);
+    setEditIndexWho(index);
+  };
+
+  const addLessontoCourse = (lesson) => {
+    const safeLesson = {
+      ...lesson,
+      chapter: Array.isArray(lesson.chapter)
+        ? lesson.chapter.map(video => ({
+            title: video.title || "",
+            duration: video.duration || "",
+            url: video.url || "",
+          }))
+        : [],
+    };
+    const newLessons = [...courseData.lessons];
+    if (safeLesson.updateIndex === null || safeLesson.updateIndex === undefined) {
+      newLessons.push({
+        ...safeLesson,
+        updateIndex: newLessons.length > 0 ? newLessons.length : 0,
+      });
+    } else {
+      newLessons[safeLesson.updateIndex] = safeLesson;
+    }
+    setCourseData({ ...courseData, lessons: newLessons });
+    setPopupOpen({ open: false, data: null });
+  };
+
+  const removeLessonFromCourse = (lesson) => {
+    if (!lesson || lesson.updateIndex === undefined) return;
+    const newLessons = [...courseData.lessons];
+    newLessons.splice(lesson.updateIndex, 1);
+    setCourseData({ ...courseData, lessons: newLessons });
+  };
+
+  const openEditLesson = (lesson, index) => {
+    if (!lesson) {
+      console.error("Invalid lesson data:", lesson);
+      return;
+    }
+    const safeLesson = {
+      ...lesson,
+      chapter: Array.isArray(lesson.chapter)
+        ? lesson.chapter.map(video => ({
+            title: video.title || "",
+            duration: video.duration || "",
+            url: video.url || "",
+          }))
+        : [],
+      updateIndex: index,
+    };
+    setPopupOpen({ open: true, data: safeLesson });
+  };
+
+  const uploadCourse = async () => {
+    const errors = validateCourseData();
+    if (Object.keys(errors).length > 0) {
+      setError("Please fix: " + Object.values(errors).join(", "));
+      return;
+    }
+    try {
+      await UpdateCourseById(courseData, id);
+      navigate("/admin/courses");
+    } catch (error) {
+      console.error("Failed to update course:", error);
+      setError("Failed to update course. Please try again.");
+    }
+  };
+
+  const deleteThisCourse = async () => {
+    const confirm = window.confirm(
+      "Confirm to delete this course. All lessons associated will be lost."
+    );
+    if (confirm) {
+      try {
+        await DeleteCourseById(courseData._id);
+        navigate("/admin/courses");
+      } catch (error) {
+        console.error("Failed to delete course:", error);
+        setError("Failed to delete course. Please try again.");
+      }
+    }
+  };
 
   return (
     <div
       className="course-list-cnt p-4 new-course overflow-auto md:overflow-scroll"
-      style={{ overflow: popupOpen ? "hidden" : "scroll" }}
+      style={{ overflow: popupOpen.open ? "hidden" : "scroll" }}
     >
+      {error && (
+        <div className="error-message bg-red-100 text-red-700 p-3 mb-4 rounded">
+          {error}
+        </div>
+      )}
       <div className="top-header-cnt flex justify-between items-center mb-4">
         <div className="back-btn" onClick={() => navigate("/admin")}>
           <ArrowLeft className="h-4 w-4" />
@@ -284,7 +293,9 @@ const EditCourse = () => {
           <div className="top-btn-cnt flex space-x-4">
             <div
               className="course-delete-btn bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 cursor-pointer"
-              onClick={() => setEditCourse(false)}
+              onClick={() => {
+                if (window.confirm("Discard changes?")) setEditCourse(false);
+              }}
             >
               Cancel Edit
             </div>
@@ -299,7 +310,7 @@ const EditCourse = () => {
           <div className="top-btn-cnt flex space-x-4">
             <div
               className="course-delete-btn bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 cursor-pointer"
-              onClick={() => deleteThisCourse()}
+              onClick={deleteThisCourse}
             >
               Delete Course
             </div>
@@ -330,7 +341,7 @@ const EditCourse = () => {
               type="text"
               className="name-input mt-2 p-3 w-full border border-gray-300 rounded-lg"
               value={courseData.title}
-              readOnly={editCourse ? false : true}
+              readOnly={!editCourse}
               onChange={(e) => handledirectInput("title", e.target.value)}
             />
           </div>
@@ -339,7 +350,7 @@ const EditCourse = () => {
             <p className="text-sm font-semibold">Describe course</p>
             <textarea
               className="description-input mt-2 p-3 w-full border border-gray-300 rounded-lg"
-              readOnly={editCourse ? false : true}
+              readOnly={!editCourse}
               value={courseData.description}
               onChange={(e) => handledirectInput("description", e.target.value)}
             />
@@ -353,7 +364,7 @@ const EditCourse = () => {
                 className="name-input mt-2 p-3 w-full border border-gray-300 rounded-lg"
                 placeholder="₹"
                 value={courseData.price || ""}
-                readOnly={editCourse ? false : true}
+                readOnly={!editCourse}
                 onChange={(e) => handledirectInput("price", e.target.value)}
               />
             </div>
@@ -363,6 +374,7 @@ const EditCourse = () => {
               <input
                 type="file"
                 accept="image/*"
+                disabled={!editCourse}
                 onChange={(e) =>
                   setCourseData({ ...courseData, thumbnail: e.target.files[0] })
                 }
@@ -372,7 +384,7 @@ const EditCourse = () => {
           </div>
 
           <div className="course-description-cnt mb-4">
-            <p className="text-sm font-semibold">OverviewPoints</p>
+            <p className="text-sm font-semibold">Overview Points</p>
             {editCourse && (
               <div className="overview-input-cnt flex flex-col gap-4">
                 <input
@@ -380,31 +392,27 @@ const EditCourse = () => {
                   className="name-input p-3 w-full border border-gray-300 rounded-lg"
                   value={currentOverview.heading}
                   placeholder="Heading"
-                  onChange={(e) =>
-                    handleOverviewInput("heading", e.target.value)
-                  }
+                  onChange={(e) => handleOverviewInput("heading", e.target.value)}
                 />
                 <textarea
                   className="overview-input p-3 w-full border border-gray-300 rounded-lg"
                   placeholder="Description"
                   value={currentOverview.content}
-                  onChange={(e) =>
-                    handleOverviewInput("content", e.target.value)
-                  }
+                  onChange={(e) => handleOverviewInput("content", e.target.value)}
                 />
                 <div
                   className="overview-add-btn bg-green-500 text-white p-3 rounded cursor-pointer hover:bg-green-600"
-                  onClick={() => addNewOverview()}
+                  onClick={addNewOverview}
                 >
                   <p>Add</p>
                 </div>
               </div>
             )}
-            {courseData?.overviewPoints?.map((overview, index) => (
+            {courseData.overviewPoints.map((overview, index) => (
               <div className="overviewPoint-cnt mb-4" key={index}>
                 <div className="overview-head-cnt flex justify-between items-center">
                   <p className="overviewPoint-heading text-lg font-semibold">
-                    {overview?.heading}
+                    {overview.heading}
                   </p>
                   {editCourse && (
                     <div className="action-btn-cnt-overview flex space-x-2">
@@ -419,7 +427,7 @@ const EditCourse = () => {
                     </div>
                   )}
                 </div>
-                <p className="overviewPoint-content">{overview?.content}</p>
+                <p className="overviewPoint-content">{overview.content}</p>
               </div>
             ))}
           </div>
@@ -441,8 +449,8 @@ const EditCourse = () => {
           </div>
 
           <div className="lesson-list-cnt">
-            {courseData.lessons?.length > 0 ? (
-              courseData?.lessons?.map((lesson, index) => (
+            {courseData.lessons.length > 0 ? (
+              courseData.lessons.map((lesson, index) => (
                 <div
                   className="lesson bg-white p-4 mb-4 rounded shadow-lg cursor-pointer"
                   key={index}
@@ -454,17 +462,15 @@ const EditCourse = () => {
                   </h1>
                   <div className="lesson-title-cnt mt-2">
                     <h3 className="lesson-title text-lg font-semibold">
-                      {lesson?.title}
+                      {lesson.title}
                     </h3>
                   </div>
                   <ul className="lesson-subtitle-cnt mt-4">
-                    {lesson?.chapter?.map((video, idx) => (
+                    {lesson.chapter.map((video, idx) => (
                       <li key={idx}>
-                        <p className="lesson-subtitle text-sm">
-                          {video?.title}
-                        </p>
+                        <p className="lesson-subtitle text-sm">{video.title}</p>
                         <p className="lesson-duration-txt text-sm text-gray-600">
-                          duration: {video?.duration}
+                          duration: {video.duration}
                         </p>
                       </li>
                     ))}
@@ -486,10 +492,10 @@ const EditCourse = () => {
 
       {popupOpen.open && (
         <NewLesson
-          addLesson={(lesson) => addLessontoCourse(lesson)}
-          editData={popupOpen?.data}
+          addLesson={addLessontoCourse}
+          editData={popupOpen.data}
           cancel={() => setPopupOpen({ open: false, data: null })}
-          removeThisLesson={(lesson) => removeLessonFromCourse(lesson)}
+          removeThisLesson={removeLessonFromCourse}
         />
       )}
     </div>

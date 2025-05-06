@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { ImagePlus, X } from "lucide-react";
-import { addFormPost, UploadFile } from "../service/api";
+import { CreateForumPost, UploadFile } from "../service/api";
 
-export function NewForumPostForm({ onSubmit, onCancel }) {
+export function NewForumPostForm({ onSubmit, onCancel, onRefresh }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState(null);
@@ -17,6 +17,15 @@ export function NewForumPostForm({ onSubmit, onCancel }) {
     const file = e.target.files[0];
     if (!file) return;
 
+    if (file.size > 5 * 1024 * 1024) {
+      setError("File size exceeds 5MB");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      setError("Only image files are allowed");
+      return;
+    }
+
     const formData = new FormData();
     formData.append("file", file);
 
@@ -27,7 +36,7 @@ export function NewForumPostForm({ onSubmit, onCancel }) {
       setPreviewUrl(res.data.fileUrl);
       setError(null);
     } catch (err) {
-      setError(err.message || "Failed to upload image");
+      setError(err.response?.data?.error || err.message || "Failed to upload image");
     } finally {
       setLoading(false);
     }
@@ -37,18 +46,23 @@ export function NewForumPostForm({ onSubmit, onCancel }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!title.trim() || !description.trim()) return;
-
-    const payload = new FormData();
-    payload.append("title", title);
-    payload.append("content", description); // Map description to content
-    if (imageUrl) {
-      payload.append("files", imageUrl); // Append image URL as a file field
+    // Validate title and description
+    if (!title.trim() || !description.trim()) {
+      setError("Title and description are required");
+      return;
     }
+
+    // Create payload
+    const payload = {
+      title: title.trim(),
+      content: description.trim(),
+      files: imageUrl ? [imageUrl] : [],
+      approved: false, // New posts require approval
+    };
 
     try {
       setLoading(true);
-      const newPost = await addFormPost(payload);
+      const newPost = await CreateForumPost(payload);
       setError(null);
 
       // Reset form
@@ -57,12 +71,15 @@ export function NewForumPostForm({ onSubmit, onCancel }) {
       setImageUrl(null);
       setPreviewUrl(null);
 
-      // Notify parent component
+      // Trigger callbacks
       if (onSubmit) {
         onSubmit(newPost);
       }
+      if (onRefresh) {
+        await onRefresh();
+      }
     } catch (err) {
-      setError(err.message || "Failed to create post");
+      setError(err.response?.data?.error || err.message || "Failed to create post");
     } finally {
       setLoading(false);
     }
@@ -115,6 +132,7 @@ export function NewForumPostForm({ onSubmit, onCancel }) {
             onChange={(e) => setTitle(e.target.value)}
             required
             disabled={loading}
+            aria-label="Post title"
           />
         </div>
 
@@ -133,6 +151,7 @@ export function NewForumPostForm({ onSubmit, onCancel }) {
             onChange={(e) => setDescription(e.target.value)}
             required
             disabled={loading}
+            aria-label="Post description"
           />
         </div>
 
@@ -140,7 +159,6 @@ export function NewForumPostForm({ onSubmit, onCancel }) {
           <label className="block text-sm font-medium text-gray-700">
             Image (optional)
           </label>
-
           {previewUrl ? (
             <div className="relative w-full h-48 rounded-md overflow-hidden border">
               <img
@@ -153,6 +171,7 @@ export function NewForumPostForm({ onSubmit, onCancel }) {
                 onClick={removeImage}
                 disabled={loading}
                 className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700 disabled:opacity-50"
+                aria-label="Remove image"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -176,6 +195,7 @@ export function NewForumPostForm({ onSubmit, onCancel }) {
                   accept="image/*"
                   onChange={handleImageChange}
                   disabled={loading}
+                  aria-label="Upload an image"
                 />
               </label>
             </div>
@@ -194,7 +214,7 @@ export function NewForumPostForm({ onSubmit, onCancel }) {
           <button
             type="submit"
             disabled={loading || !title.trim() || !description.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
           >
             {loading ? "Posting..." : "Post"}
           </button>

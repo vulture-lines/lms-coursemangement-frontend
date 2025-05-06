@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ArrowUpCircle,
   ArrowDownCircle,
@@ -13,11 +13,18 @@ import {
   Trash2,
 } from "lucide-react";
 import { ForumCommentItem } from "./ForumCommentItem";
+import {
+  LikeForumPost,
+  AddForumReply,
+  UpdateForumPost,
+  DeleteForumPost,
+  GetForumPostById,
+} from "../service/api";
 
 export function ForumPostCard({ post, currentUser }) {
   const [upvoted, setUpvoted] = useState(false);
   const [downvoted, setDownvoted] = useState(false);
-  const [upvotes, setUpvotes] = useState(post.upvotes);
+  const [upvotes, setUpvotes] = useState(post.upvotes || 0);
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
@@ -25,68 +32,129 @@ export function ForumPostCard({ post, currentUser }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(post.content);
   const [isDeleted, setIsDeleted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Debug log to check usernames
-  console.log("currentUser:", currentUser);
-  console.log("post.user:", post.user);
-  console.log("Can edit/delete:", currentUser?.username === post.user.username);
+  // Fetch comments when showComments is toggled
+  useEffect(() => {
+    if (showComments) {
+      const fetchComments = async () => {
+        try {
+          setLoading(true);
+          const postData = await GetForumPostById(post._id);
+          setComments(postData.replies || []);
+        } catch (err) {
+          setError(err.message || "Failed to fetch comments");
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchComments();
+    }
+  }, [showComments, post._id]);
 
-  const handleUpvote = () => {
-    if (upvoted) {
-      setUpvotes(upvotes - 1);
-      setUpvoted(false);
-    } else {
-      setUpvotes(downvoted ? upvotes + 2 : upvotes + 1);
-      setUpvoted(true);
+  const handleUpvote = async () => {
+    try {
+      setLoading(true);
+      const newUpvoteState = !upvoted;
+      const response = await LikeForumPost(post._id);
+      setUpvotes(response.upvotes || (upvoted ? upvotes - 1 : upvotes + 1));
+      setUpvoted(newUpvoteState);
       setDownvoted(false);
+      setError(null);
+    } catch (err) {
+      setError(err.message || "Failed to upvote post");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDownvote = () => {
-    if (downvoted) {
-      setUpvotes(upvotes + 1);
-      setDownvoted(false);
-    } else {
-      setUpvotes(upvoted ? upvotes - 2 : upvotes - 1);
-      setDownvoted(true);
+  const handleDownvote = async () => {
+    try {
+      setLoading(true);
+      const newDownvoteState = !downvoted;
+      const response = await LikeForumPost(post._id); // Adjust if separate downvote API exists
+      setUpvotes(response.upvotes || (downvoted ? upvotes + 1 : upvotes - 1));
+      setDownvoted(newDownvoteState);
       setUpvoted(false);
+      setError(null);
+    } catch (err) {
+      setError(err.message || "Failed to downvote post");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleShare = () => {
     navigator.clipboard.writeText(
-      `https://devforum.example.com/post/${post.id}`
+      `https://devforum.example.com/post/${post._id}`
     );
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleAddComment = () => {
-    if (newComment.trim()) {
-      const comment = {
-        id: `c${comments.length + 1}`,
-        author: currentUser?.username || "currentUser",
-        content: newComment,
-        upvotes: 1,
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return;
+
+    try {
+      setLoading(true);
+      const replyData = {
+        message: newComment,
+        user: currentUser?.id || "anonymous",
+      };
+      const response = await AddForumReply(post._id, replyData);
+      const newCommentData = {
+        _id: response._id,
+        message: newComment,
+        user: { username: currentUser?.username || "Anonymous" },
+        upvotes: 0,
         timePosted: "Just now",
       };
-      setComments([comment, ...comments]);
+      setComments([newCommentData, ...comments]);
       setNewComment("");
+      setError(null);
+    } catch (err) {
+      setError(err.message || "Failed to add comment");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleEdit = () => {
+  const handleEdit = async () => {
     if (isEditing) {
-      post.content = editedContent;
-      setIsEditing(false);
+      try {
+        setLoading(true);
+        const updatedPost = {
+          title: post.title,
+          content: editedContent,
+          files: post.files || [],
+        };
+        await UpdateForumPost(post._id, updatedPost);
+        post.content = editedContent;
+        setIsEditing(false);
+        setError(null);
+      } catch (err) {
+        setError(err.message || "Failed to update post");
+      } finally {
+        setLoading(false);
+      }
     } else {
       setIsEditing(true);
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (window.confirm("Are you sure you want to delete this post?")) {
-      setIsDeleted(true);
+      try {
+        setLoading(true);
+        await DeleteForumPost(post._id);
+        setIsDeleted(true);
+        setError(null);
+      } catch (err) {
+        setError(err.message || "Failed to delete post");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -96,23 +164,30 @@ export function ForumPostCard({ post, currentUser }) {
 
   return (
     <div className="border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+      {/* Error Display */}
+      {error && (
+        <div className="p-2 bg-red-100 text-red-600 text-sm">{error}</div>
+      )}
+
       {/* Header */}
       <div className="p-4 flex items-start gap-4">
         <div className="flex flex-col items-center gap-1">
           <button
             onClick={handleUpvote}
+            disabled={loading}
             className={`p-1 rounded-full hover:bg-gray-100 ${
               upvoted ? "text-orange-500" : "text-gray-600"
-            }`}
+            } ${loading ? "opacity-50" : ""}`}
           >
             <ArrowUpCircle className="h-5 w-5" />
           </button>
           <span className="font-medium text-sm">{upvotes}</span>
           <button
             onClick={handleDownvote}
+            disabled={loading}
             className={`p-1 rounded-full hover:bg-gray-100 ${
               downvoted ? "text-green-500" : "text-gray-600"
-            }`}
+            } ${loading ? "opacity-50" : ""}`}
           >
             <ArrowDownCircle className="h-5 w-5" />
           </button>
@@ -120,8 +195,8 @@ export function ForumPostCard({ post, currentUser }) {
 
         <div className="flex-1">
           <div className="text-sm text-gray-500 flex items-center gap-2 mb-1">
-            <span>Posted by u/{post.user.username}</span>•
-            <span>{post.timePosted}</span>
+            <span>Posted by u/{post.user?.username || "Anonymous"}</span>•
+            <span>{post.timePosted || "Unknown time"}</span>
           </div>
           <h3 className="text-lg font-semibold">{post.title}</h3>
         </div>
@@ -134,11 +209,12 @@ export function ForumPostCard({ post, currentUser }) {
             value={editedContent}
             onChange={(e) => setEditedContent(e.target.value)}
             className="w-full min-h-[100px] p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+            disabled={loading}
           />
         ) : (
           <p className="mb-4 text-gray-800">{post.content}</p>
         )}
-        {post.files && (
+        {post.files?.length > 0 && (
           <div className="relative w-full h-64 mb-4 rounded-md overflow-hidden">
             <img
               src={post.files[0] || "/placeholder.svg"}
@@ -155,6 +231,7 @@ export function ForumPostCard({ post, currentUser }) {
           <button
             onClick={() => setShowComments(!showComments)}
             className="flex items-center gap-1 text-gray-600 hover:text-gray-800"
+            disabled={loading}
           >
             <MessageSquare className="h-4 w-4" />
             <span>{comments.length} Comments</span>
@@ -167,29 +244,27 @@ export function ForumPostCard({ post, currentUser }) {
           <button
             onClick={handleShare}
             className="flex items-center gap-1 text-gray-600 hover:text-gray-800"
+            disabled={loading}
           >
             <Share2 className="h-4 w-4" />
             <span>{copied ? "Copied!" : "Share"}</span>
           </button>
-          {/* Temporarily remove condition for testing */}
-          {  (
-            <>
-              <button
-                onClick={handleEdit}
-                className="flex items-center gap-1 text-gray-600 hover:text-gray-800"
-              >
-                <Edit className="h-4 w-4" />
-                <span>{isEditing ? "Save" : "Edit"}</span>
-              </button>
-              <button
-                onClick={handleDelete}
-                className="flex items-center gap-1 text-gray-600 hover:text-red-600"
-              >
-                <Trash2 className="h-4 w-4" />
-                <span>Delete</span>
-              </button>
-            </>
-          ) }
+          <button
+            onClick={handleEdit}
+            className="flex items-center gap-1 text-gray-600 hover:text-gray-800"
+            disabled={loading}
+          >
+            <Edit className="h-4 w-4" />
+            <span>{isEditing ? "Save" : "Edit"}</span>
+          </button>
+          <button
+            onClick={handleDelete}
+            className="flex items-center gap-1 text-gray-600 hover:text-red-600"
+            disabled={loading}
+          >
+            <Trash2 className="h-4 w-4" />
+            <span>Delete</span>
+          </button>
         </div>
 
         {/* Comments */}
@@ -205,10 +280,11 @@ export function ForumPostCard({ post, currentUser }) {
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   className="w-full min-h-[2.5rem] p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+                  disabled={loading}
                 />
                 <button
                   onClick={handleAddComment}
-                  disabled={!newComment.trim()}
+                  disabled={loading || !newComment.trim()}
                   className="p-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
                 >
                   <Send className="h-4 w-4" />
@@ -217,9 +293,24 @@ export function ForumPostCard({ post, currentUser }) {
             </div>
 
             <div className="space-y-3 pl-10">
-              {comments.map((comment) => (
-                <ForumCommentItem key={comment.id} comment={comment} />
-              ))}
+              {loading ? (
+                <p className="text-gray-500">Loading comments...</p>
+              ) : comments.length > 0 ? (
+                comments.map((comment) => (
+                  <ForumCommentItem
+                    key={comment._id}
+                    comment={{
+                      id: comment._id,
+                      author: comment.user?.username || "Anonymous",
+                      content: comment.message || comment.content || "",
+                      upvotes: comment.upvotes || 0,
+                      timePosted: comment.timePosted || "Unknown",
+                    }}
+                  />
+                ))
+              ) : (
+                <p className="text-gray-500">No comments yet.</p>
+              )}
             </div>
           </div>
         )}
