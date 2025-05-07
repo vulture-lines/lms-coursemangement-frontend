@@ -8,7 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { PieChart, Pie, Cell, Legend, Tooltip as PieTooltip } from "recharts";
+import { BarChart, Bar, Cell, Legend, Tooltip as BarTooltip } from "recharts";
 import { GetAllCourses, GetAllUsers } from "../../service/api";
 
 function AdminDashboard() {
@@ -48,7 +48,7 @@ function AdminDashboard() {
   const buyers = users.filter((user) => user.role === "Student").length;
   const totalCourses = courses.length;
 
-  const pieData = [
+  const barData = [
     { name: "Courses", value: totalCourses },
     { name: "Buyers", value: buyers },
   ];
@@ -148,34 +148,28 @@ function AdminDashboard() {
           </div>
         </div>
 
-        {/* Pie Chart: Courses vs Buyers */}
+        {/* Bar Chart: Courses vs Buyers */}
         <div className="bg-white p-4 md:p-6 rounded-lg shadow-md w-full">
           <h2 className="text-lg md:text-xl font-semibold text-gray-800 mb-3 md:mb-4">
             Courses vs Buyers
           </h2>
           <div className="h-64 sm:h-72 md:h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  fill="#8884d8"
-                  label
-                >
-                  {pieData.map((entry, index) => (
+              <BarChart data={barData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <BarTooltip />
+                <Legend />
+                <Bar dataKey="value" fill="#8884d8">
+                  {barData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={COLORS[index % COLORS.length]}
                     />
                   ))}
-                </Pie>
-                <PieTooltip />
-                <Legend />
-              </PieChart>
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>

@@ -2,11 +2,10 @@ import axios from "axios";
 
 const baseUrl = "https://law-lms.onrender.com";
 const Token = JSON.parse(localStorage.getItem("loginData"));
-// console.log(Token.token);
 
 axios.defaults.headers.common["Authorization"] = `Bearer ${Token?.token}`;
 
-// =================================  Authentication section ========================
+// ================================= Authentication section ========================
 
 // Register
 export const AuthRegister = async (data) => {
@@ -14,7 +13,7 @@ export const AuthRegister = async (data) => {
     const res = await axios.post(`${baseUrl}/api/auth/signup`, data);
     return res.data;
   } catch (error) {
-    console.log(error);
+    throw error.response?.data?.message || error.message || "Failed to register";
   }
 };
 
@@ -24,27 +23,24 @@ export const AuthLogin = async (data) => {
     const res = await axios.post(`${baseUrl}/api/auth/login`, data);
     return res.data;
   } catch (error) {
-    console.log(error);
+    throw error.response?.data?.message || error.message || "Failed to login";
   }
 };
 
-// logout
+// Logout
 export const Logout = async () => {
   try {
     const res = await axios.post(`${baseUrl}/api/auth/logout`);
-    localStorage.clear();
+    localStorage.removeItem("loginData");
     return res.data.message;
   } catch (error) {
-    console.log(error);
+    throw error.response?.data?.message || error.message || "Failed to logout";
   }
 };
 
-// =================================  Authentication section ========================
-//
-//
-//
-//
-// =================================  user section ========================
+// ================================= Authentication section ========================
+
+// ================================= User section ========================
 
 // Get all users
 export const GetAllUsers = async () => {
@@ -59,7 +55,9 @@ export const GetAllUsers = async () => {
 // Get user by ID
 export const GetUserById = async (userId) => {
   try {
-    if (!userId) throw new Error("User ID is required");
+    if (!userId || typeof userId !== "string" || userId === "[object Object]") {
+      throw new Error("Valid user ID (non-empty string) is required");
+    }
     const res = await axios.get(`${baseUrl}/api/users/${userId}`);
     return res.data;
   } catch (error) {
@@ -70,6 +68,12 @@ export const GetUserById = async (userId) => {
 // Update user by ID
 export const UpdateUserById = async (userId, userData) => {
   try {
+    if (!userId || typeof userId !== "string" || userId === "[object Object]") {
+      throw new Error("Valid user ID (non-empty string) is required");
+    }
+    if (!userData || typeof userData !== "object" || Object.keys(userData).length === 0) {
+      throw new Error("Valid user data is required");
+    }
     const res = await axios.put(`${baseUrl}/api/users/${userId}`, userData);
     return res.data;
   } catch (error) {
@@ -80,6 +84,10 @@ export const UpdateUserById = async (userId, userData) => {
 // Update user approval status
 export const UpdateUserApproval = async (userId, isApproved) => {
   try {
+    if (!userId || typeof userId !== "string" || userId === "[object Object]") {
+      throw new Error("Valid user ID (non-empty string) is required");
+    }
+    if (typeof isApproved !== "boolean") throw new Error("isApproved must be a boolean");
     const res = await axios.put(`${baseUrl}/api/users/approve/${userId}`, { isApproved });
     return res.data;
   } catch (error) {
@@ -90,6 +98,9 @@ export const UpdateUserApproval = async (userId, isApproved) => {
 // Delete user by ID
 export const DeleteUserById = async (userId) => {
   try {
+    if (!userId || typeof userId !== "string" || userId === "[object Object]") {
+      throw new Error("Valid user ID (non-empty string) is required");
+    }
     const res = await axios.delete(`${baseUrl}/api/users/${userId}`);
     return res.data;
   } catch (error) {
@@ -97,12 +108,68 @@ export const DeleteUserById = async (userId) => {
   }
 };
 
-// =================================  user section ========================
-//
-//
-//
-//
-// =================================  course section ========================
+// Change user role (Mentor, Student)
+export const ChangeUserRole = async (userId, role) => {
+  try {
+    if (!userId || typeof userId !== "string" || userId === "[object Object]") {
+      throw new Error("Valid user ID (non-empty string) is required");
+    }
+    if (!["Mentor", "Student"].includes(role)) throw new Error("Role must be 'Mentor' or 'Student'");
+    const res = await axios.put(`${baseUrl}/api/users/change-role/${userId}`, { role });
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to change user role";
+  }
+};
+
+// Approve user's course enrollment
+export const ApproveCourseEnrollment = async (userId, courseId) => {
+  try {
+    if (!userId || typeof userId !== "string" || userId === "[object Object]") {
+      throw new Error("Valid user ID (non-empty string) is required");
+    }
+    if (!courseId || typeof courseId !== "string" || courseId === "[object Object]") {
+      throw new Error("Valid course ID (non-empty string) is required");
+    }
+    const res = await axios.put(`${baseUrl}/api/users/approve/${userId}/${courseId}`, { isApproved: true });
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to approve course enrollment";
+  }
+};
+
+// Update expiry date of enrollment
+export const UpdateEnrollmentExpiry = async (userId, courseId, expiryDate) => {
+  try {
+    if (!userId || typeof userId !== "string" || userId === "[object Object]") {
+      throw new Error("Valid user ID (non-empty string) is required");
+    }
+    if (!courseId || typeof courseId !== "string" || courseId === "[object Object]") {
+      throw new Error("Valid course ID (non-empty string) is required");
+    }
+    if (!expiryDate || isNaN(new Date(expiryDate).getTime())) {
+      throw new Error("Valid expiry date is required");
+    }
+    const res = await axios.put(`${baseUrl}/api/users/update-expiry/${userId}/${courseId}`, { expiryDate });
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to update enrollment expiry";
+  }
+};
+
+// List all users with expired enrollments
+export const GetUsersWithExpiredEnrollments = async () => {
+  try {
+    const res = await axios.get(`${baseUrl}/api/users/expired`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to fetch users with expired enrollments";
+  }
+};
+
+// ================================= User section ========================
+
+// ================================= Course section ========================
 
 // Get all courses
 export const GetAllCourses = async () => {
@@ -110,7 +177,6 @@ export const GetAllCourses = async () => {
     const res = await axios.get(`${baseUrl}/api/courses`);
     return res.data;
   } catch (error) {
-    console.error("Error fetching all courses:", error);
     throw error.response?.data?.message || error.message || "Failed to fetch courses";
   }
 };
@@ -118,11 +184,12 @@ export const GetAllCourses = async () => {
 // Get course by ID
 export const GetCourseById = async (id) => {
   try {
-    if (!id) throw new Error("Course ID is required");
+    if (!id || typeof id !== "string" || id === "[object Object]") {
+      throw new Error("Valid course ID (non-empty string) is required");
+    }
     const res = await axios.get(`${baseUrl}/api/courses/${id}`);
     return res.data;
   } catch (error) {
-    console.error(`Error fetching course with ID ${id}:`, error);
     throw error.response?.data?.message || error.message || "Failed to fetch course";
   }
 };
@@ -133,7 +200,6 @@ export const AddNewCourseApi = async (courseData) => {
     const res = await axios.post(`${baseUrl}/api/courses`, courseData);
     return res.data;
   } catch (error) {
-    console.error("Error adding new course:", error);
     throw error.response?.data?.message || error.message || "Failed to add course";
   }
 };
@@ -141,6 +207,9 @@ export const AddNewCourseApi = async (courseData) => {
 // Update course by ID
 export const UpdateCourseById = async (courseData, id) => {
   try {
+    if (!id || typeof id !== "string" || id === "[object Object]") {
+      throw new Error("Valid course ID (non-empty string) is required");
+    }
     const res = await axios.put(`${baseUrl}/api/courses/${id}`, courseData);
     return res.data;
   } catch (error) {
@@ -151,10 +220,12 @@ export const UpdateCourseById = async (courseData, id) => {
 // Delete course by ID
 export const DeleteCourseById = async (id) => {
   try {
+    if (!id || typeof id !== "string" || id === "[object Object]") {
+      throw new Error("Valid course ID (non-empty string) is required");
+    }
     const res = await axios.delete(`${baseUrl}/api/courses/${id}`);
     return res.data;
   } catch (error) {
-    console.error(`Error deleting course with ID ${id}:`, error);
     throw error.response?.data?.message || error.message || "Failed to delete course";
   }
 };
@@ -162,61 +233,54 @@ export const DeleteCourseById = async (id) => {
 // Create Course Enrollment
 export const CreateCourseEnrollment = async ({ courseId }) => {
   try {
+    if (!courseId || typeof courseId !== "string" || courseId === "[object Object]") {
+      throw new Error("Valid course ID (non-empty string) is required");
+    }
     const res = await axios.post(`${baseUrl}/api/enrollments/${courseId}`);
     return res.data;
   } catch (error) {
-    console.error(error);
-    return error.response?.data?.message;
+    throw error.response?.data?.message || error.message || "Failed to create course enrollment";
   }
 };
 
 // Get Course Enrollment
 export const GetCourseEnrollment = async ({ userId }) => {
   try {
+    if (!userId || typeof userId !== "string" || userId === "[object Object]") {
+      throw new Error("Valid user ID (non-empty string) is required");
+    }
     const res = await axios.get(`${baseUrl}/api/enrollments/${userId}`);
     return res.data;
   } catch (error) {
-    console.error(error);
-    return error.response?.data?.message;
+    throw error.response?.data?.message || error.message || "Failed to fetch course enrollment";
   }
 };
 
 // Update Course Enrollment
 export const UpdateCourseEnrollment = async ({ userId, courseId }) => {
   try {
+    if (!userId || typeof userId !== "string" || userId === "[object Object]") {
+      throw new Error("Valid user ID (non-empty string) is required");
+    }
+    if (!courseId || typeof courseId !== "string" || courseId === "[object Object]") {
+      throw new Error("Valid course ID (non-empty string) is required");
+    }
     const res = await axios.put(`${baseUrl}/api/enrollments/${userId}/${courseId}`);
     return res.data;
   } catch (error) {
-    console.error(error);
-    return error.response?.data?.message;
-  }
-};
-
-// Course Progress post method
-export const CourseProgressPost = async ({ userId, courseId, payload }) => {
-  try {
-    const res = await axios.post(`${baseUrl}/api/courseProgress/${userId}/${courseId}`, payload);
-    return res.data;
-  } catch (error) {
-    console.error(error);
-    return error.response?.data?.message;
-  }
-};
-
-// Course Progress Get method
-export const CourseProgressGet = async ({ userId, courseId }) => {
-  try {
-    const res = await axios.get(`${baseUrl}/api/courseProgress/${userId}/${courseId}`);
-    return res.data;
-  } catch (error) {
-    console.error(error);
-    return error.response?.data?.message;
+    throw error.response?.data?.message || error.message || "Failed to update course enrollment";
   }
 };
 
 // Create or update course progress
 export const UpdateCourseProgress = async (userId, courseId, progressData) => {
   try {
+    if (!userId || typeof userId !== "string" || userId === "[object Object]") {
+      throw new Error("Valid user ID (non-empty string) is required");
+    }
+    if (!courseId || typeof courseId !== "string" || courseId === "[object Object]") {
+      throw new Error("Valid course ID (non-empty string) is required");
+    }
     const res = await axios.post(`${baseUrl}/api/courseProgress/${userId}/${courseId}`, progressData);
     return res.data;
   } catch (error) {
@@ -224,15 +288,27 @@ export const UpdateCourseProgress = async (userId, courseId, progressData) => {
   }
 };
 
+// Alias for backward compatibility with CourseContent.jsx
+export const CourseProgressPost = UpdateCourseProgress;
+
 // Get course progress for a specific user and course
 export const GetCourseProgress = async (userId, courseId) => {
   try {
+    if (!userId || typeof userId !== "string" || userId === "[object Object]") {
+      throw new Error("Valid user ID (non-empty string) is required");
+    }
+    if (!courseId || typeof courseId !== "string" || courseId === "[object Object]") {
+      throw new Error("Valid course ID (non-empty string) is required");
+    }
     const res = await axios.get(`${baseUrl}/api/courseProgress/${userId}/${courseId}`);
     return res.data;
   } catch (error) {
     throw error.response?.data?.message || error.message || "Failed to fetch course progress";
   }
 };
+
+// Alias for backward compatibility with components expecting CourseProgressGet
+export const CourseProgressGet = GetCourseProgress;
 
 // Get all course progress for all users and courses
 export const GetAllCourseProgress = async () => {
@@ -247,10 +323,12 @@ export const GetAllCourseProgress = async () => {
 // Submit answers for a sublesson
 export const SubmitAnswers = async ({ courseId, sublessonIndex, payload }) => {
   try {
+    if (!courseId || typeof courseId !== "string" || courseId === "[object Object]") {
+      throw new Error("Valid course ID (non-empty string) is required");
+    }
     const res = await axios.post(`${baseUrl}/api/answers/${courseId}/${sublessonIndex}`, payload);
     return res.data;
   } catch (error) {
-    console.error(`Error submitting answers for course ${courseId}:`, error);
     throw error.response?.data?.message || error.message || "Failed to submit answers";
   }
 };
@@ -258,23 +336,21 @@ export const SubmitAnswers = async ({ courseId, sublessonIndex, payload }) => {
 // Get all test results for the user
 export const GetUserTestResults = async (userId) => {
   try {
-    if (!userId) throw new Error("User ID is required");
+    if (!userId || typeof userId !== "string" || userId === "[object Object]") {
+      throw new Error("Valid user ID (non-empty string) is required");
+    }
     const res = await axios.get(`${baseUrl}/api/answers/${userId}`);
     return res.data.answers;
   } catch (error) {
-    console.error(`Error fetching test results for user ${userId}:`, error);
     throw error.response?.data?.message || error.message || "Failed to fetch test results";
   }
 };
 
-// =================================  course section ========================
-//
-//
-//
-//
-// =================================  Upload file section ========================
+// ================================= Course section ========================
 
-// without type
+// ================================= Upload file section ========================
+
+// Without type
 export const UploadFile = async (file) => {
   try {
     const res = await axios.post(`${baseUrl}/api/upload`, file, {
@@ -282,18 +358,13 @@ export const UploadFile = async (file) => {
         "Content-Type": "multipart/form-data",
       },
     });
-    console.log(res.data);
-
-    if (res.status === 200) {
-      return res;
-    }
+    return res.data;
   } catch (error) {
-    console.log(error);
-    return error.message;
+    throw error.response?.data?.message || error.message || "Failed to upload";
   }
 };
 
-// with type
+// With type
 export const UploadFileWithType = async (file) => {
   try {
     const res = await axios.post(`https://z-backend-2xag.onrender.com/api/upload/type`, file, {
@@ -301,22 +372,14 @@ export const UploadFileWithType = async (file) => {
         "Content-Type": "multipart/form-data",
       },
     });
-    console.log(res.data);
-
-    if (res.status === 200) {
-      return res;
-    }
+    return res.data;
   } catch (error) {
-    console.log(error);
-    return error?.response?.data?.message || error.message || "Upload failed";
+    throw error.response?.data?.message || error.message || "Failed to upload";
   }
 };
 
-// =================================  Upload file section ========================
-//
-//
-//
-//
+// ================================= Upload file section ========================
+
 // ================================= Announcement section ========================
 
 // Create announcement
@@ -360,10 +423,159 @@ export const UpdateAnnouncement = async (id, updateData) => {
 };
 
 // ================================= Announcement section ========================
-//
-//
-//
-//
+
+// ================================= Calendar section ========================
+
+// Create calendar event
+export const CreateCalendarEvent = async (eventData) => {
+  try {
+    const res = await axios.post(`${baseUrl}/api/calender`, eventData);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to create calendar event";
+  }
+};
+
+// Get all calendar events
+export const GetAllCalendarEvents = async () => {
+  try {
+    const res = await axios.get(`${baseUrl}/api/calender`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to fetch calendar events";
+  }
+};
+
+// Get calendar event by ID
+export const GetCalendarEventById = async (id) => {
+  try {
+    const res = await axios.get(`${baseUrl}/api/calender/${id}`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to fetch calendar event";
+  }
+};
+
+// Update calendar event by ID
+export const UpdateCalendarEventById = async (id, eventData) => {
+  try {
+    const res = await axios.put(`${baseUrl}/api/calender/${id}`, eventData);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to update calendar event";
+  }
+};
+
+// Delete calendar event by ID
+export const DeleteCalendarEventById = async (id) => {
+  try {
+    const res = await axios.delete(`${baseUrl}/api/calender/${id}`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to delete calendar event";
+  }
+};
+
+// ================================= Calendar section ========================
+
+// ================================= Query Section ========================
+
+// Get all queries
+export const GetAllQueries = async () => {
+  try {
+    const res = await axios.get(`${baseUrl}/api/queries`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to fetch queries";
+  }
+};
+
+// Create a new query/ticket
+export const CreateQuery = async (queryData) => {
+  try {
+    const res = await axios.post(`${baseUrl}/api/queries`, queryData);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to create query";
+  }
+};
+
+// Get a single query by ID
+export const GetQueryById = async (queryId) => {
+  try {
+    const res = await axios.get(`${baseUrl}/api/queries/${queryId}`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to fetch query";
+  }
+};
+
+// Get queries from current student
+export const GetQueriesByCurrentStudent = async (queryId) => {
+  try {
+    const res = await axios.get(`${baseUrl}/api/queries/${queryId}`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to fetch student queries";
+  }
+};
+
+// Update a query by ID (Accept ticket)
+export const UpdateQuery = async (queryId, queryData) => {
+  try {
+    const res = await axios.put(`${baseUrl}/api/queries/accept/${queryId}`, queryData);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to update query";
+  }
+};
+
+// Delete a query by ID
+export const DeleteQuery = async (queryId) => {
+  try {
+    const res = await axios.delete(`${baseUrl}/api/queries/${queryId}`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to delete query";
+  }
+};
+
+// ================================= Query Section ========================
+
+// ================================= Notification Section ========================
+
+// Create a new notification
+export const CreateNotification = async (notificationData) => {
+  try {
+    const res = await axios.post(`${baseUrl}/api/notifications`, notificationData);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to create notification";
+  }
+};
+
+// Get all notifications
+export const GetAllNotifications = async () => {
+  try {
+    const res = await axios.get(`${baseUrl}/api/notifications`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to fetch notifications";
+  }
+};
+
+// Mark a notification as read
+export const MarkNotificationAsRead = async (notificationId) => {
+  try {
+    const res = await axios.put(`${baseUrl}/api/notifications/${notificationId}`, {});
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to mark notification as read";
+  }
+};
+
+// ================================= Notification Section ========================
+
 // ================================= Forum Section ========================
 
 // Create a new forum post
@@ -467,171 +679,41 @@ export const ToggleForumPostApproval = async (postId, approved) => {
 };
 
 // ================================= Forum Section ========================
-//
-//
-//
-//
-// ================================= Calendar section ========================
 
-// Create calendar event
-export const CreateCalendarEvent = async (eventData) => {
+// ================================= Message section ========================
+
+// Get conversation messages with a user
+export const GetConversationMessages = async (userId) => {
   try {
-    const res = await axios.post(`${baseUrl}/api/calender`, eventData);
+    const res = await axios.get(`${baseUrl}/api/message/conversation/${userId}`);
     return res.data;
   } catch (error) {
-    throw error.response?.data?.message || error.message || "Failed to create calendar event";
+    throw error.response?.data?.message || error.message || "Failed to fetch messages";
   }
 };
 
-// Get all calendar events
-export const GetAllCalendarEvents = async () => {
+// Send a new message
+export const SendMessage = async (messageData) => {
   try {
-    const res = await axios.get(`${baseUrl}/api/calender`);
+    const res = await axios.post(`${baseUrl}/api/message`, messageData);
     return res.data;
   } catch (error) {
-    throw error.response?.data?.message || error.message || "Failed to fetch calendar events";
+    throw error.response?.data?.message || error.message || "Failed to send message";
   }
 };
 
-// Get calendar event by ID
-export const GetCalendarEventById = async (id) => {
+// Get inbox (latest message per sender)
+export const GetInbox = async () => {
   try {
-    const res = await axios.get(`${baseUrl}/api/calender/${id}`);
+    const res = await axios.get(`${baseUrl}/api/message/inbox`);
     return res.data;
   } catch (error) {
-    throw error.response?.data?.message || error.message || "Failed to fetch calendar event";
+    throw error.response?.data?.message || error.message || "Failed to fetch inbox";
   }
 };
 
-// Update calendar event by ID
-export const UpdateCalendarEventById = async (id, eventData) => {
-  try {
-    const res = await axios.put(`${baseUrl}/api/calender/${id}`, eventData);
-    return res.data;
-  } catch (error) {
-    throw error.response?.data?.message || error.message || "Failed to update calendar event";
-  }
-};
+// ================================= Message section ========================
 
-// Delete calendar event by ID
-export const DeleteCalendarEventById = async (id) => {
-  try {
-    const res = await axios.delete(`${baseUrl}/api/calender/${id}`);
-    return res.data;
-  } catch (error) {
-    throw error.response?.data?.message || error.message || "Failed to delete calendar event";
-  }
-};
-
-// ================================= Calendar section ========================
-//
-//
-//
-//
-// ================================= Query Section ========================
-
-// Get all queries
-export const GetAllQueries = async () => {
-  try {
-    const res = await axios.get(`${baseUrl}/api/queries`);
-    return res.data;
-  } catch (error) {
-    throw error.response?.data?.message || error.message || "Failed to fetch queries";
-  }
-};
-
-// Create a new query/ticket
-export const CreateQuery = async (queryData) => {
-  try {
-    const res = await axios.post(`${baseUrl}/api/queries`, queryData);
-    return res.data;
-  } catch (error) {
-    throw error.response?.data?.message || error.message || "Failed to create query";
-  }
-};
-
-// Get a single query by ID
-export const GetQueryById = async (queryId) => {
-  try {
-    const res = await axios.get(`${baseUrl}/api/queries/${queryId}`);
-    return res.data;
-  } catch (error) {
-    throw error.response?.data?.message || error.message || "Failed to fetch query";
-  }
-};
-
-// Get queries from current student
-export const GetQueriesByCurrentStudent = async (queryId) => {
-  try {
-    const res = await axios.get(`${baseUrl}/api/queries/${queryId}`);
-    return res.data;
-  } catch (error) {
-    throw error.response?.data?.message || error.message || "Failed to fetch student queries";
-  }
-};
-
-// Update a query by ID (Accept ticket)
-export const UpdateQuery = async (queryId, queryData) => {
-  try {
-    const res = await axios.put(`${baseUrl}/api/queries/accept/${queryId}`, queryData);
-    return res.data;
-  } catch (error) {
-    throw error.response?.data?.message || error.message || "Failed to update query";
-  }
-};
-
-// Delete a query by ID
-export const DeleteQuery = async (queryId) => {
-  try {
-    const res = await axios.get(`${baseUrl}/api/queries/${queryId}`);
-    return res.data;
-  } catch (error) {
-    throw error.response?.data?.message || error.message || "Failed to delete query";
-  }
-};
-
-// ================================= Query Section ========================
-//
-//
-//
-//
-// ================================= Notification Section ========================
-
-// Create a new notification
-export const CreateNotification = async (notificationData, token) => {
-  try {
-    const res = await axios.post(`${baseUrl}/api/notifications`, notificationData);
-    return res.data;
-  } catch (error) {
-    throw error.response?.data?.message || error.message || "Failed to create notification";
-  }
-};
-
-// Get all notifications
-export const GetAllNotifications = async (token) => {
-  try {
-    const res = await axios.get(`${baseUrl}/api/notifications`);
-    return res.data;
-  } catch (error) {
-    throw error.response?.data?.message || error.message || "Failed to fetch notifications";
-  }
-};
-
-// Mark a notification as read
-export const MarkNotificationAsRead = async (notificationId, token) => {
-  try {
-    const res = await axios.put(`${baseUrl}/api/notifications/${notificationId}`, {});
-    return res.data;
-  } catch (error) {
-    throw error.response?.data?.message || error.message || "Failed to mark notification as read";
-  }
-};
-
-// ================================= Notification Section ========================
-//
-//
-//
-//
 // ================================= Task Achievement Section ========================
 
 // Create a new task achievement
@@ -685,22 +767,50 @@ export const DeleteTaskAchievement = async (achievementId) => {
 };
 
 // ================================= Task Achievement Section ========================
-//
-//
-//
-//
-// ================================= Course Achievements section ========================
 
-export const GetCourseAchievementsByUserId = async (userId, token) => {
+// ================================= Course Achievement Section ========================
+
+// Create a new course achievement
+export const CreateCourseAchievement = async (achievementData) => {
   try {
-    if (!userId) throw new Error("User ID is required");
-    if (!token) throw new Error("Authorization token is required");
+    const res = await axios.post(`${baseUrl}/api/courseAchievements`, achievementData);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to create course achievement";
+  }
+};
 
-    const res = await axios.get(`${baseUrl}/api/courseAchievements/${userId}`, {});
+// Get all course achievements
+export const GetAllCourseAchievements = async () => {
+  try {
+    const res = await axios.get(`${baseUrl}/api/courseAchievements`);
     return res.data;
   } catch (error) {
     throw error.response?.data?.message || error.message || "Failed to fetch course achievements";
   }
 };
 
-// ================================= Course Achievements section ========================
+// Get course achievements by user ID
+export const GetCourseAchievementsByUserId = async (userId) => {
+  try {
+    if (!userId || typeof userId !== "string" || userId === "[object Object]") {
+      throw new Error("Valid user ID (non-empty string) is required");
+    }
+    const res = await axios.get(`${baseUrl}/api/courseAchievements/${userId}`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to fetch course achievements for user";
+  }
+};
+
+// Update a course achievement by ID
+export const UpdateCourseAchievement = async (achievementId, achievementData) => {
+  try {
+    const res = await axios.put(`${baseUrl}/api/courseAchievements/${achievementId}`, achievementData);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to update course achievement";
+  }
+};
+
+// ================================= Course Achievement Section ========================

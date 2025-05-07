@@ -32,12 +32,12 @@ function StudentDashboard() {
             courseId: course.courseId._id,
           });
 
-          courseProgressArray.push({
-            id: course.courseId._id,
-            title: course.courseId.title,
-            thumbnail: course.courseId.thumbnail,
-            percentage: res.progress?.percentage || 0,
-          });
+          // courseProgressArray.push({
+          //   id: course.courseId._id,
+          //   title: course.courseId.title,
+          //   thumbnail: course.courseId.thumbnail,
+          //   percentage: res.progress?.percentage || 0,
+          // });
         }
 
         setPurchasedCoursesProgress(courseProgressArray);

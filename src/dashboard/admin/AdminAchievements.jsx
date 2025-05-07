@@ -1,27 +1,31 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { CreateTaskAchievement, GetAllTaskAchievements, UpdateTaskAchievement, DeleteTaskAchievement, GetAllUsers } from '../../service/api';
+import { CreateCourseAchievement, GetAllCourseAchievements, UpdateCourseAchievement, GetAllUsers, GetAllCourses, UploadFile } from '../../service/api';
 
 const AdminAchievements = () => {
   const [achievements, setAchievements] = useState([]);
   const [users, setUsers] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentAchievement, setCurrentAchievement] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [certificateLoading, setCertificateLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { register, handleSubmit, reset, formState: { errors } } = useForm();
-  const canvasRefs = useRef({});
+  const [certificatePreview, setCertificatePreview] = useState(null);
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm();
 
-  // Fetch all achievements and users
+  // Fetch all achievements, users, and courses
   const fetchData = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const achievementData = await GetAllTaskAchievements();
+      const achievementData = await GetAllCourseAchievements();
       setAchievements(achievementData);
       const userData = await GetAllUsers();
       setUsers(userData);
+      const courseData = await GetAllCourses();
+      setCourses(courseData);
     } catch (err) {
       setError(err.message || "Failed to load data");
     } finally {
@@ -34,61 +38,45 @@ const AdminAchievements = () => {
     fetchData();
   }, []);
 
-  // Format date for display
-  const formatDate = (dateString) => {
-    if (!dateString) return '';
-    const options = {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+  // Clean up certificate preview URL
+  useEffect(() => {
+    return () => {
+      if (certificatePreview) {
+        URL.revokeObjectURL(certificatePreview);
+      }
     };
-    return new Date(dateString).toLocaleDateString(undefined, options);
-  };
+  }, [certificatePreview]);
 
-  // Draw certificate on canvas
-  const drawCertificate = (canvas, achievement) => {
-    const ctx = canvas.getContext('2d');
-    canvas.width = 800;
-    canvas.height = 600;
+  const handleCertificateUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-    // Background
-    ctx.fillStyle = '#f5f5f5';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (!file.type.startsWith('image/')) {
+      setError('Please select a valid image file (e.g., JPG, PNG).');
+      return;
+    }
 
-    // Border
-    ctx.strokeStyle = 'green';
-    ctx.lineWidth = 10;
-    ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+    const previewUrl = URL.createObjectURL(file);
+    setCertificatePreview(previewUrl);
+    setCertificateLoading(true);
+    setError(null);
 
-    // Certificate Title
-    ctx.fillStyle = '#000000';
-    ctx.font = 'bold 48px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('Certificate of Achievement', canvas.width / 2, 100);
-
-    // Badge
-    // ctx.font = 'bold 36px Arial';
-    // ctx.fillStyle = achievement.badge.toLowerCase() === '#000000';
-    // ctx.fillText(achievement.badge.charAt(0).toUpperCase() + achievement.badge.slice(1), canvas.width / 2, 180);
-
-    // Title
-    ctx.font = '30px Arial';
-    ctx.fillStyle = '#000000';
-    ctx.fillText(achievement.title, canvas.width / 2, 250);
-
-    // Description
-    ctx.font = '24px Arial';
-    ctx.fillText(achievement.description, canvas.width / 2, 320);
-
-    // Username
-    ctx.font = '28px Arial';
-    ctx.fillText(`Awarded to: ${achievement.username || 'Unknown'}`, canvas.width / 2, 400);
-
-    // Date
-    ctx.font = '24px Arial';
-    ctx.fillText(`Date: ${formatDate(achievement.assignedAt)}`, canvas.width / 2, 460);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await UploadFile(formData);
+      if (res?.data?.fileUrl) {
+        setValue('certificateUrl', res.data.fileUrl);
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (error) {
+      setError('Failed to upload certificate. Please try again.');
+      setCertificatePreview(null);
+      setValue('certificateUrl', '');
+    } finally {
+      setCertificateLoading(false);
+    }
   };
 
   const onSubmit = async (data) => {
@@ -96,26 +84,24 @@ const AdminAchievements = () => {
     setError(null);
     try {
       if (isEditing && currentAchievement) {
-        await UpdateTaskAchievement(currentAchievement._id, {
-          title: data.title,
-          description: data.description,
-          // badge: data.badge
+        await UpdateCourseAchievement(currentAchievement._id, {
+          certificateUrl: data.certificateUrl,
         });
       } else {
-        await CreateTaskAchievement({
-          title: data.title,
-          description: data.description,
-          // badge: data.badge,
-          userId: data.userId
+        await CreateCourseAchievement({
+          userId: data.userId,
+          courseId: data.courseId,
+          certificateUrl: data.certificateUrl,
         });
       }
-      await fetchData(); // Refresh data after create/update
+      await fetchData();
       reset();
       setShowForm(false);
       setIsEditing(false);
       setCurrentAchievement(null);
+      setCertificatePreview(null);
     } catch (err) {
-      setError(err.message || "Failed to save achievement");
+      setError(err.message || 'Failed to save achievement');
     } finally {
       setIsLoading(false);
     }
@@ -125,33 +111,19 @@ const AdminAchievements = () => {
     setCurrentAchievement(achievement);
     setIsEditing(true);
     setShowForm(true);
+    setCertificatePreview(achievement.certificateUrl || null);
     reset({
-      title: achievement.title,
-      description: achievement.description,
-      // badge: achievement.badge,
-      userId: achievement.user
+      userId: achievement.user,
+      courseId: achievement.courseId,
+      certificateUrl: achievement.certificateUrl,
     });
   };
 
-  const handleDelete = async (achievementId) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await DeleteTaskAchievement(achievementId);
-      await fetchData(); // Refresh data after delete
-    } catch (err) {
-      setError(err.message || "Failed to delete achievement");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleDownload = (achievement) => {
-    const canvas = canvasRefs.current[achievement._id];
-    if (canvas) {
+    if (achievement.certificateUrl) {
       const link = document.createElement('a');
-      link.href = canvas.toDataURL('image/png');
-      link.download = `${achievement.title.replace(/\s+/g, '_')}_certificate.png`;
+      link.href = achievement.certificateUrl;
+      link.download = `${(achievement.courseTitle || 'certificate').replace(/\s+/g, '_')}_certificate.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -164,19 +136,20 @@ const AdminAchievements = () => {
     setIsEditing(false);
     setCurrentAchievement(null);
     setError(null);
+    setCertificatePreview(null);
   };
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-800">Manage Certificates</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Manage Course Certificates</h1>
         {!showForm && (
           <button
             onClick={() => setShowForm(true)}
             className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
             disabled={isLoading}
           >
-            Create Certificate
+            Create Course Certificate
           </button>
         )}
       </div>
@@ -194,56 +167,10 @@ const AdminAchievements = () => {
       {showForm && (
         <div className="bg-white p-6 rounded-lg shadow-md mb-8">
           <h2 className="text-xl font-semibold mb-4">
-            {isEditing ? 'Edit Certificate' : 'Create New Certificate'}
+            {isEditing ? 'Edit Course Certificate' : 'Create Course Certificate'}
           </h2>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-                Title *
-              </label>
-              <input
-                id="title"
-                type="text"
-                {...register('title', { required: 'Title is required' })}
-                className={`w-full px-3 py-2 border rounded-md border-gray-300 ${errors.title ? 'border-red-500' : ''}`}
-                disabled={isLoading}
-              />
-              {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                Description *
-              </label>
-              <textarea
-                id="description"
-                rows={4}
-                {...register('description', { required: 'Description is required' })}
-                className={`w-full px-3 py-2 border rounded-md border-gray-300 ${errors.description ? 'border-red-500' : ''}`}
-                disabled={isLoading}
-              />
-              {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description.message}</p>}
-            </div>
-
-            {/* <div>
-              <label htmlFor="badge" className="block text-sm font-medium text-gray-700 mb-1">
-                Badge *
-              </label>
-              <select
-                id="badge"
-                {...register('badge', { required: 'Badge is required' })}
-                className={`w-full px-3 py-2 border rounded-md border-gray-300 ${errors.badge ? 'border-red-500' : ''}`}
-                disabled={isLoading}
-              >
-                <option value="">Select Badge</option>
-                <option value="gold">Gold</option>
-                <option value="silver">Silver</option>
-                <option value="bronze">Bronze</option>
-              </select>
-              {errors.badge && <p className="text-red-500 text-sm mt-1">{errors.badge.message}</p>}
-            </div> */}
-
             <div>
               <label htmlFor="userId" className="block text-sm font-medium text-gray-700 mb-1">
                 User *
@@ -264,11 +191,93 @@ const AdminAchievements = () => {
               {errors.userId && <p className="text-red-500 text-sm mt-1">{errors.userId.message}</p>}
             </div>
 
+            <div>
+              <label htmlFor="courseId" className="block text-sm font-medium text-gray-700 mb-1">
+                Course *
+              </label>
+              <select
+                id="courseId"
+                {...register('courseId', { required: 'Course is required' })}
+                className={`w-full px-3 py-2 border rounded-md border-gray-300 ${errors.courseId ? 'border-red-500' : ''}`}
+                disabled={isLoading || isEditing}
+              >
+                <option value="">Select Course</option>
+                {courses.map((course) => (
+                  <option key={course._id} value={course._id}>
+                    {course.title || 'Unknown Course'}
+                  </option>
+                ))}
+              </select>
+              {errors.courseId && <p className="text-red-500 text-sm mt-1">{errors.courseId.message}</p>}
+            </div>
+
+            <div>
+              <label htmlFor="certificateFile" className="block text-sm font-medium text-gray-700 mb-1">
+                Certificate Image *
+              </label>
+              <input
+                id="certificateFile"
+                type="file"
+                accept="image/*"
+                onChange={handleCertificateUpload}
+                className={`w-full px-3 py-2 border rounded-md border-gray-300 file:bg-green-600 file:text-white file:border-none file:px-4 file:py-2 file:rounded ${errors.certificateUrl ? 'border-red-500' : ''}`}
+                disabled={isLoading || certificateLoading}
+                aria-label="Certificate Image"
+                aria-describedby={errors.certificateUrl ? 'certificate-error' : undefined}
+              />
+              <input
+                type="hidden"
+                {...register('certificateUrl', { required: 'Certificate image is required' })}
+              />
+              {errors.certificateUrl && (
+                <p id="certificate-error" className="text-red-500 text-sm mt-1">
+                  {errors.certificateUrl.message}
+                </p>
+              )}
+              {certificateLoading && (
+                <div className="mt-2 flex items-center">
+                  <svg
+                    className="animate-spin h-5 w-5 text-green-600 mr-2"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Uploading...
+                </div>
+              )}
+              {certificatePreview && (
+                <div className="mt-4">
+                  <p className="mb-1 text-sm text-gray-600">Certificate Preview</p>
+                  <div className="relative w-40 h-40 rounded-md overflow-hidden">
+                    <img
+                      src={certificatePreview}
+                      alt="Certificate Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="flex space-x-3 pt-2">
               <button
                 type="submit"
                 className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-                disabled={isLoading}
+                disabled={isLoading || certificateLoading}
               >
                 {isEditing ? 'Update' : 'Create'} Certificate
               </button>
@@ -277,7 +286,7 @@ const AdminAchievements = () => {
                 type="button"
                 onClick={handleCancel}
                 className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                disabled={isLoading}
+                disabled={isLoading || certificateLoading}
               >
                 Cancel
               </button>
@@ -288,18 +297,26 @@ const AdminAchievements = () => {
 
       {achievements.length === 0 && !isLoading ? (
         <div className="bg-white p-6 rounded-lg shadow-md text-center text-gray-500">
-          No Certificates yet. Click "Create Certificate" to add one.
+          No course certificates yet. Click "Create Course Certificate" to add one.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {achievements.map((achievement) => (
             <div key={achievement._id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-              <canvas
-                ref={(el) => (canvasRefs.current[achievement._id] = el)}
-                className="w-full"
-                style={{ maxWidth: '100%', height: 'auto' }}
-              />
+              {achievement.certificateUrl ? (
+                <img
+                  src={achievement.certificateUrl}
+                  alt={`${achievement.courseTitle || 'Certificate'}`}
+                  className="w-full h-48 object-cover"
+                />
+              ) : (
+                <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-500">
+                  No Certificate Image
+                </div>
+              )}
               <div className="p-5">
+                <h3 className="text-lg font-semibold">{achievement.courseTitle || 'Unknown Course'}</h3>
+                <p className="text-gray-600">Awarded to: {achievement.username || 'Unknown'}</p>
                 <div className="mt-4 flex justify-end space-x-2">
                   <button
                     onClick={() => handleEdit(achievement)}
@@ -307,30 +324,21 @@ const AdminAchievements = () => {
                     title="Edit"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15.828l-5.657-5.657a2 2 0 112.828-2.828l2.829 2.829" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => handleDelete(achievement._id)}
-                    className="p-2 text-gray-500 hover:text-red-600 rounded-full hover:bg-red-50 transition-colors duration-200"
-                    title="Delete"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width={2} d="M6 18L18 6M6 6l12 12" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15.828l-5.657-5.657a2 2 0 112.828-2.828l2.829 2.829" />
                     </svg>
                   </button>
                   <button
                     onClick={() => handleDownload(achievement)}
                     className="p-2 text-gray-500 hover:text-green-600 rounded-full hover:bg-green-50 transition-colors duration-200"
                     title="Download"
+                    disabled={!achievement.certificateUrl}
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
                   </button>
                 </div>
               </div>
-              {canvasRefs.current[achievement._id] && drawCertificate(canvasRefs.current[achievement._id], achievement)}
             </div>
           ))}
         </div>
