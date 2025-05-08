@@ -1,6 +1,7 @@
 import axios from "axios";
 
 const baseUrl = "https://law-lms.onrender.com";
+export const baseUrl1 = "https://law-lms.onrender.com";
 const Token = JSON.parse(localStorage.getItem("loginData"));
 
 axios.defaults.headers.common["Authorization"] = `Bearer ${Token?.token}`;
@@ -814,3 +815,45 @@ export const UpdateCourseAchievement = async (achievementId, achievementData) =>
 };
 
 // ================================= Course Achievement Section ========================
+
+
+// ================================= Todo Section =======================================
+export const getTodos = async (params = {}) => {
+  try {
+    const response = await axios.get(`${baseUrl}/api/todo`, { params });
+    return response.data;
+  } catch (error) {
+    throw new Error("Error fetching todos");
+  }
+};
+
+export const addTodo = async (text) => {
+  try {
+    const response = await axios.post(`${baseUrl}/api/todo`, {
+      text,
+      date: new Date().toISOString().split("T")[0], // Current date in YYYY-MM-DD format
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error("Error adding todo");
+  }
+};
+
+export const toggleTodo = async (id) => {
+  try {
+    const response = await axios.put(`${baseUrl}/api/todo/toggle/${id}`);
+    return response.data;
+  } catch (error) {
+    throw new Error("Error toggling todo");
+  }
+};
+
+export const deleteTodo = async (id) => {
+  try {
+    await axios.delete(`${baseUrl}/api/todo/${id}`);
+  } catch (error) {
+    throw new Error("Error deleting todo");
+  }
+};
+
+// ================================= Todo Section =======================================

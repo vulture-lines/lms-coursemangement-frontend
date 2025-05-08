@@ -65,13 +65,13 @@ const AdminAchievements = () => {
       const formData = new FormData();
       formData.append('file', file);
       const res = await UploadFile(formData);
-      if (res?.data?.fileUrl) {
-        setValue('certificateUrl', res.data.fileUrl);
+      if (res?.fileUrl && typeof res.fileUrl === 'string' && res.fileUrl.startsWith('http')) {
+        setValue('certificateUrl', res.fileUrl);
       } else {
-        throw new Error('Invalid response from server');
+        throw new Error('Invalid response from server: fileUrl missing or invalid');
       }
     } catch (error) {
-      setError('Failed to upload certificate. Please try again.');
+      setError(error.message || 'Failed to upload certificate. Please try again.');
       setCertificatePreview(null);
       setValue('certificateUrl', '');
     } finally {

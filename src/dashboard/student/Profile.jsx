@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { baseUrl1 } from '../../service/api';
 
-const API_URL = 'https://law-lms.onrender.com';
+const API_URL = baseUrl1;
 
 function Profile() {
   const [state, setState] = useState({
@@ -170,7 +171,7 @@ function Profile() {
 
     try {
       const response = await fetch(`${API_URL}/api/users/${userId}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -373,6 +374,7 @@ function Profile() {
                   value={formData.phone}
                   onChange={handleInputChange}
                   className="col-span-2 text-sm text-gray-900 border rounded-md p-2"
+                   pattern="^[6789]\d{9}$"
                 />
               </div>
               <div className="grid grid-cols-3 gap-4">
@@ -395,7 +397,7 @@ function Profile() {
                   className="col-span-2 text-sm text-gray-900 border rounded-md p-2"
                 />
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              {/* <div className="grid grid-cols-3 gap-4">
                 <label className="text-sm font-medium text-gray-500">Qualification</label>
                 <input
                   type="text"
@@ -439,7 +441,7 @@ function Profile() {
                   onChange={handleInputChange}
                   className="col-span-2 text-sm text-gray-900 border rounded-md p-2"
                 />
-              </div>
+              </div> */}
             </div>
           </div>
 
@@ -538,7 +540,7 @@ function Profile() {
                   <p className="text-sm font-medium text-gray-500">Education</p>
                   <p className="col-span-2 text-sm text-gray-900">{profile.education || 'Not provided'}</p>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
+                {/* <div className="grid grid-cols-3 gap-4">
                   <p className="text-sm font-medium text-gray-500">Qualification</p>
                   <p className="col-span-2 text-sm text-gray-900">{profile.qualification || 'Not provided'}</p>
                 </div>
@@ -553,7 +555,7 @@ function Profile() {
                 <div className="grid grid-cols-3 gap-4">
                   <p className="text-sm font-medium text-gray-500">Theological</p>
                   <p className="col-span-2 text-sm text-gray-900">{profile.theological || 'Not provided'}</p>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>

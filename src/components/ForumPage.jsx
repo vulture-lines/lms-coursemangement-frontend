@@ -8,7 +8,15 @@ import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { NewForumPostForm } from "./NewForumPostForm";
 import { ForumPostCard } from "./ForumPostCard";
-import { CreateForumPost, GetAllForumPosts } from "../service/api";
+import {  GetAllForumPosts,
+  AddForumReply,
+  UpdateForumPost,
+  DeleteForumPost,
+  LikeForumPost,
+  UpdateForumReply,
+  DeleteForumReply,
+  CreateForumPost,
+  UploadFile, } from "../service/api";
 
 
 
@@ -18,7 +26,8 @@ export default function ForumPage() {
 
   const fetchAllPost = async () => {
     try {
-      const Posts = await GetAllForumPosts();
+      const allPosts = await GetAllForumPosts();
+      const Posts = allPosts.filter((post) => post.approved === true);
       setPosts(Posts);
       console.log(Posts);
     } catch (error) {

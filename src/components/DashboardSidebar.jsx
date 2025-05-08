@@ -8,13 +8,27 @@ function DashboardSidebar({ NavLinks }) {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const HandleLogout = async () => {
-    const res = await Logout();
-    if (res) {
+    try {
+      const res = await Logout();
+      if (!res) {
+        alert("Logout failed. Redirecting to home.");
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+      // alert("An error occurred during logout.");
+    } finally {
       navigate("/");
-    } else {
-      console.log("Logout failed");
     }
   };
+  
+  // const HandleLogout = async () => {
+  //   const res = await Logout();
+  //   if (res) {
+  //     navigate("/");
+  //   } else {
+  //     console.log("Logout failed");
+  //   }
+  // };
   return (
     <>
       <div

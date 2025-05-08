@@ -79,18 +79,48 @@ function CoursePage() {
   const [purchasedCoursesIds, setPurchasedCoursesIds] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // useEffect(() => {
+  //   const fetchCourses = async () => {
+  //     try {
+  //       const allCourses = await GetAllCourses();
+  //       setCourses(allCourses);
+
+  //       const enrollment = await GetCourseEnrollment({
+  //         userId: UserInfo.user._id,
+  //       });
+  //       const courseIds = enrollment.enrolledCourses.map(
+  //         (item) => item.courseId._id
+  //       );
+  //       setPurchasedCoursesIds(courseIds);
+  //     } catch (error) {
+  //       console.error("Error fetching courses or enrollments:", error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchCourses();
+  // }, []);
+
   useEffect(() => {
     const fetchCourses = async () => {
       try {
         const allCourses = await GetAllCourses();
         setCourses(allCourses);
-
+  
         const enrollment = await GetCourseEnrollment({
           userId: UserInfo.user._id,
         });
-        const courseIds = enrollment.enrolledCourses.map(
-          (item) => item.courseId._id
-        );
+  
+        // Filter for only approved and not expired enrollments
+        const validEnrollments = enrollment.enrolledCourses.filter((item) => {
+          const isApproved = item.isApproved === true;
+          const notExpired = new Date(item.expiryDate) > new Date();
+          return isApproved && notExpired;
+        });
+  
+        // Now extract only the valid course IDs
+        const courseIds = validEnrollments.map((item) => item.courseId._id);
         setPurchasedCoursesIds(courseIds);
       } catch (error) {
         console.error("Error fetching courses or enrollments:", error);
@@ -98,9 +128,10 @@ function CoursePage() {
         setLoading(false);
       }
     };
-
+  
     fetchCourses();
   }, []);
+  
 
   const purchasedCourses = courses.filter((course) =>
     purchasedCoursesIds.includes(course._id)

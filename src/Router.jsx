@@ -29,7 +29,7 @@ import Achievements from "./dashboard/student/Achievements";
 import BigCalendar from "./dashboard/student/BigCalendar";
 import ExamPage from "./dashboard/student/ExamPage";
 import CourseProgressReport from "./dashboard/student/CourseProgressReport";
-import ForumPage from "./components/ForumPage";
+import ForumPage from "./dashboard/student/StudentForumPage";
 import { GetAllCourses, GetAllUsers } from "./service/api";
 import Profile from "./dashboard/student/Profile";
 import Query from "./dashboard/student/Query";
