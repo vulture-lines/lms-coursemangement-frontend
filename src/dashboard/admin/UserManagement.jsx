@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { GetAllUsers, UpdateUserById, UpdateUserApproval, DeleteUserById, ApproveCourseEnrollment, UpdateEnrollmentExpiry, ChangeUserRole } from "../../service/api";
+import { GetAllUsers, UpdateUserById, UpdateUserApproval, UpdateUserApproval1,DeleteUserById, ApproveCourseEnrollment, UpdateEnrollmentExpiry, ChangeUserRole } from "../../service/api";
 import { useLoaderData } from "react-router";
 import PageHeader from "../../components/PageHeader";
 
@@ -43,13 +43,14 @@ function UserManagement() {
   const handleToggleApproval = async (userId, newApprovalStatus) => {
     setIsLoading(true);
     try {
-      await UpdateUserApproval(userId, newApprovalStatus);
+      await UpdateUserApproval1(userId, newApprovalStatus);
       setUsers((prevUsers) =>
         prevUsers.map((user) =>
           user._id === userId ? { ...user, isApproved: newApprovalStatus } : user
         )
       );
       setError(null);
+      window.location.reload();
     } catch (error) {
       setError(error.message || "Failed to update approval status");
       setUsers((prevUsers) =>

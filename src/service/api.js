@@ -96,6 +96,15 @@ export const UpdateUserApproval = async (userId, isApproved) => {
   }
 };
 
+export const UpdateUserApproval1 = async (userId, isApproved) => {
+  try {
+    const res = await axios.put(`${baseUrl}/api/users/approve/${userId}`, { isApproved });
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to update approval status";
+  }
+};
+
 // Delete user by ID
 export const DeleteUserById = async (userId) => {
   try {
