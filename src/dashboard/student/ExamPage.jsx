@@ -128,14 +128,14 @@ function ExamPage() {
                 Test Results for {bestMarksByCourse.find((c) => c.courseId === selectedCourseId)?.courseTitle}
               </h2>
               <div className="flex gap-4">
-                {marksData.length > 0 && (
+                {/* {marksData.length > 0 && (
                   <button
                     onClick={clearResults}
                     className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
                   >
                     Clear All Results
                   </button>
-                )}
+                )} */}
                 <button
                   onClick={() => setSelectedCourseId(null)}
                   className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"

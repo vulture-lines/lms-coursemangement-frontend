@@ -304,18 +304,34 @@ export const CourseProgressPost = UpdateCourseProgress;
 // Get course progress for a specific user and course
 export const GetCourseProgress = async (userId, courseId) => {
   try {
-    if (!userId || typeof userId !== "string" || userId === "[object Object]") {
+    if (!userId || typeof userId !== "string") {
       throw new Error("Valid user ID (non-empty string) is required");
     }
-    if (!courseId || typeof courseId !== "string" || courseId === "[object Object]") {
+    if (!courseId || typeof courseId !== "string") {
       throw new Error("Valid course ID (non-empty string) is required");
     }
+
     const res = await axios.get(`${baseUrl}/api/courseProgress/${userId}/${courseId}`);
     return res.data;
   } catch (error) {
-    throw error.response?.data?.message || error.message || "Failed to fetch course progress";
+    throw new Error(error.response?.data?.message || error.message || "Failed to fetch course progress");
   }
 };
+
+// export const GetCourseProgress = async (userId, courseId) => {
+//   try {
+//     if (!userId || typeof userId !== "string" || userId === "[object Object]") {
+//       throw new Error("Valid user ID (non-empty string) is required");
+//     }
+//     if (!courseId || typeof courseId !== "string" || courseId === "[object Object]") {
+//       throw new Error("Valid course ID (non-empty string) is required");
+//     }
+//     const res = await axios.get(`${baseUrl}/api/courseProgress/${userId}/${courseId}`);
+//     return res.data;
+//   } catch (error) {
+//     throw error.response?.data?.message || error.message || "Failed to fetch course progress";
+//   }
+// };
 
 // Alias for backward compatibility with components expecting CourseProgressGet
 export const CourseProgressGet = GetCourseProgress;

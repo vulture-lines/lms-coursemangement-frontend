@@ -63,6 +63,7 @@ export default function Login() {
     } catch (error) {
       console.log(error);
       localStorage.removeItem("loginData");
+      localStorage.clear();
     } finally {
       setLoading(false);
     }

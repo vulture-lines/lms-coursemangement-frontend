@@ -101,32 +101,61 @@ function CourseContent() {
   }, [id]);
 
   useEffect(() => {
-    const fetchCourseProgress = async () => {
-      try {
-        const res = await GetCourseProgress({
-          userId: UserInfo.user._id,
-          courseId: id,
+  const fetchCourseProgress = async () => {
+    try {
+      const res = await GetCourseProgress(UserInfo.user._id, id);
+      const completed = new Set();
+      const progressData = res.progress;
+      progressData.completedLessons.forEach((lesson) => {
+        lesson.sublessons?.forEach((subLesson) => {
+          if (subLesson.isCompleted) {
+            completed.add(
+              `${lesson.lessonIndex}-${subLesson.sublessonIndex}`
+            );
+          }
         });
-        const completed = new Set();
-        const progressData = res.progress;
-        progressData.completedLessons.forEach((lesson) => {
-          lesson.sublessons?.forEach((subLesson) => {
-            if (subLesson.isCompleted) {
-              completed.add(
-                `${lesson.lessonIndex}-${subLesson.sublessonIndex}`
-              );
-            }
-          });
-        });
-        setCompletedExercises(completed);
-      } catch (error) {
-        console.error("Failed to fetch course progress:", error);
-      }
-    };
-    if (UserInfo?.user?._id && id) {
-      fetchCourseProgress();
+      });
+      setCompletedExercises(completed);
+    } catch (error) {
+      console.error("Failed to fetch course progress:", error);
     }
-  }, [id]);
+  };
+
+  if (UserInfo?.user?._id && id) {
+    fetchCourseProgress();
+  }
+}, [id]);
+
+
+  // useEffect(() => {
+  //   const fetchCourseProgress = async () => {
+  //     try {
+  //       const res = await GetCourseProgress({
+  //         userId: UserInfo.user._id,
+  //         courseId: id,
+  //       });
+  //       const completed = new Set();
+  //       const progressData = res.progress;
+  //       progressData.completedLessons.forEach((lesson) => {
+  //         lesson.sublessons?.forEach((subLesson) => {
+  //           if (subLesson.isCompleted) {
+  //             completed.add(
+  //               `${lesson.lessonIndex}-${subLesson.sublessonIndex}`
+  //             );
+  //           }
+  //         });
+  //       });
+  //       setCompletedExercises(completed);
+  //     } catch (error) {
+  //       console.error("Failed to fetch course progress:", error);
+  //       console.log("User ID:", UserInfo?.user?._id, "Course ID:", id);
+
+  //     }
+  //   };
+  //   if (UserInfo?.user?._id && id) {
+  //     fetchCourseProgress();
+  //   }
+  // }, [id]);
 
   const handleContentSelect = (content, lessonIndex, subLessonIndex) => {
     if (!content) return;
@@ -472,11 +501,16 @@ function CourseContent() {
       sublessonIndex: currentSubLessonIndex,
     };
     try {
-      await CourseProgressPost({
-        userId: UserInfo.user._id,
-        courseId: id,
-        payload: payload,
-      });
+      await CourseProgressPost(
+  UserInfo.user._id,
+  id,
+  payload
+);
+      // await CourseProgressPost({
+      //   userId: UserInfo.user._id,
+      //   courseId: id,
+      //   payload: payload,
+      // });
     } catch (error) {
       console.error("Failed to update course progress:", error);
     }
