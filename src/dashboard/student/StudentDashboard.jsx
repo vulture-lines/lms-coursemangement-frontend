@@ -13,40 +13,39 @@ function StudentDashboard() {
   console.log(userInfo);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const userData = JSON.parse(localStorage.getItem("loginData"));
+const fetchData = async () => {
+  const userData = JSON.parse(localStorage.getItem("loginData"));
+  try {
+    const data = await GetCourseEnrollment({ userId: userData.user._id });
 
-      try {
-        const data = await GetCourseEnrollment({ userId: userData.user._id });
+    const enrolledCourses = data.enrolledCourses || [];
 
-        const enrolledCourses = data.enrolledCourses || [];
-        const courseIds = enrolledCourses.map((item) => item.courseId._id);
+    // filter out enrollments with missing courseId
+    const validCourses = enrolledCourses.filter(
+      (item) => item.courseId && item.courseId._id
+    );
 
-        setPurchasedCourses(courseIds);
+    const courseIds = validCourses.map((item) => item.courseId._id);
+    setPurchasedCourses(courseIds);
 
-        const courseProgressArray = [];
+    const courseProgressArray = [];
 
-        for (const course of enrolledCourses) {
-          const res = await GetCourseProgress(userData.user._id, course.courseId._id);
+    for (const course of validCourses) {
+      const res = await GetCourseProgress(userData.user._id, course.courseId._id);
+      courseProgressArray.push({
+        id: course.courseId._id,
+        title: course.courseId.title,
+        thumbnail: course.courseId.thumbnail,
+        percentage: res.progress?.percentage || 0,
+      });
+    }
 
-          // const res = await GetCourseProgress({
-          //   userId: userData.user._id,
-          //   courseId: course.courseId._id,
-          // });
+    setPurchasedCoursesProgress(courseProgressArray);
+  } catch (error) {
+    console.error("Error fetching data:", error);
+  }
+};
 
-          courseProgressArray.push({
-            id: course.courseId._id,
-            title: course.courseId.title,
-            thumbnail: course.courseId.thumbnail,
-            percentage: res.progress?.percentage || 0,
-          });
-        }
-
-        setPurchasedCoursesProgress(courseProgressArray);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
 
     fetchData();
   }, []);
