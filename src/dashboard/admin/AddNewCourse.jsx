@@ -274,7 +274,7 @@ const AddNewCourse = () => {
 
       const response = await AddNewCourseApi(courseData);
 
-      if (response.data?.newCourse) {
+      if (response.data?.course) {
         navigate("/admin");
       } else {
         throw new Error("Invalid response from server");

@@ -376,7 +376,7 @@ export const GetUserTestResults = async (userId) => {
 
 // ================================= Upload file section ========================
 
-// Without type
+// without type
 export const UploadFile = async (file) => {
   try {
     const res = await axios.post(`${baseUrl}/api/upload`, file, {
@@ -384,13 +384,18 @@ export const UploadFile = async (file) => {
         "Content-Type": "multipart/form-data",
       },
     });
-    return res.data;
+    console.log(res.data);
+
+    if (res.status === 200) {
+      return res;
+    }
   } catch (error) {
-    throw error.response?.data?.message || error.message || "Failed to upload";
+    console.log(error);
+    return error.message;
   }
 };
 
-// With type
+// with type
 export const UploadFileWithType = async (file) => {
   try {
     const res = await axios.post(`https://z-backend-2xag.onrender.com/api/upload/type`, file, {
@@ -398,9 +403,14 @@ export const UploadFileWithType = async (file) => {
         "Content-Type": "multipart/form-data",
       },
     });
-    return res.data;
+    console.log(res.data);
+
+    if (res.status === 200) {
+      return res;
+    }
   } catch (error) {
-    throw error.response?.data?.message || error.message || "Failed to upload";
+    console.log(error);
+    return error?.response?.data?.message || error.message || "Upload failed";
   }
 };
 
