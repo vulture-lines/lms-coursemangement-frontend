@@ -1,7 +1,7 @@
 import axios from "axios";
 
-const baseUrl = "https://law-lms.onrender.com";
-export const baseUrl1 = "https://law-lms.onrender.com";
+const baseUrl = "https://lms-course-api-7xf3.onrender.com";
+export const baseUrl1 = "https://lms-course-api-7xf3.onrender.com";
 const Token = JSON.parse(localStorage.getItem("loginData"));
 
 axios.defaults.headers.common["Authorization"] = `Bearer ${Token?.token}`;
@@ -64,9 +64,9 @@ export const AuthLogin = async (data) => {
 };
 
 // Google Login
-export const AuthGoogleLogin = async (idToken) => {
+export const AuthGoogleLogin = async ({ code }) => {
   try {
-    const res = await api.post("/api/auth/google", { idToken });
+    const res = await api.post("/api/auth/google", { code });
     localStorage.setItem("loginData", JSON.stringify(res.data));
     return res.data;
   } catch (error) {
@@ -75,9 +75,9 @@ export const AuthGoogleLogin = async (idToken) => {
 };
 
 // Google Signup
-export const AuthGoogleSignup = async ({ idToken, username }) => {
-  try {
-    const res = await api.post("/api/auth/google", { idToken, username });
+export const AuthGoogleSignup = async ({ code, username }) => {
+   try {
+    const res = await api.post("/api/auth/google", { code });
     localStorage.setItem("loginData", JSON.stringify(res.data));
     return res.data;
   } catch (error) {
