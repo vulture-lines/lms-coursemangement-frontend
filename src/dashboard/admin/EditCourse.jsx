@@ -10,6 +10,39 @@ import {
 import NoLesson from "../../assets/no-lesson-illustration.svg";
 import { ArrowLeft, Edit, Trash } from "lucide-react";
 
+// CSS for file input
+const fileInputStyles = `
+  .file-input-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+  }
+  .file-input-wrapper input[type="file"] {
+    opacity: 0;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+  }
+  .file-input-label {
+    display: block;
+    padding: 0.75rem;
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    background-color: #fff;
+    color: #374151;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .file-input-label.disabled {
+    background-color: #f3f4f6;
+    cursor: not-allowed;
+  }
+`;
+
 const EditCourse = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -17,6 +50,7 @@ const EditCourse = () => {
   const [popupOpen, setPopupOpen] = useState({ open: false, data: null });
   const [editCourse, setEditCourse] = useState(false);
   const [error, setError] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false); // New state for deletion loading
   const [currentOverview, setCurrentOverview] = useState({
     heading: "",
     content: "",
@@ -28,8 +62,10 @@ const EditCourse = () => {
   const [whoIsThisFor, setWhoIsThisFor] = useState([]);
   const [currentWho, setCurrentWho] = useState({ text: "" });
   const [editIndexWho, setEditIndexWho] = useState(null);
+  const [selectedFileName, setSelectedFileName] = useState("");
 
   const [courseData, setCourseData] = useState({
+    _id: "", // Added to store course ID
     title: "",
     description: "",
     price: null,
@@ -40,15 +76,18 @@ const EditCourse = () => {
     whoIsThisFor: [],
   });
 
+  // Scroll to top when popup opens
   useEffect(() => {
     if (popupOpen.open) window.scrollTo(0, 0);
   }, [popupOpen]);
 
+  // Fetch course details on mount
   useEffect(() => {
     const fetchCourseDetails = async () => {
       try {
         const res = await GetCourseById(id);
         const safeCourseData = {
+          _id: res._id || id, // Set _id from response or fallback to URL id
           title: res.title || "",
           description: res.description || "",
           price: res.price || null,
@@ -70,6 +109,7 @@ const EditCourse = () => {
           whoIsThisFor: Array.isArray(res.whoIsThisFor) ? res.whoIsThisFor : [],
         };
         setCourseData(safeCourseData);
+        setSelectedFileName(res.thumbnail ? "Current Thumbnail" : "");
       } catch (error) {
         console.error("Failed to fetch course:", error);
         setError("Failed to load course data. Please try again.");
@@ -78,6 +118,7 @@ const EditCourse = () => {
     fetchCourseDetails();
   }, [id]);
 
+  // Validate course data before updating
   const validateCourseData = () => {
     const errors = {};
     if (!courseData.title) errors.title = "Course title is required";
@@ -88,6 +129,7 @@ const EditCourse = () => {
     return errors;
   };
 
+  // Handle direct input changes (title, description, price)
   const handledirectInput = (type, value) => {
     if (type === "price") {
       const numericValue = parseFloat(value);
@@ -100,18 +142,22 @@ const EditCourse = () => {
     }
   };
 
+  // Handle overview input changes
   const handleOverviewInput = (type, value) => {
     setCurrentOverview({ ...currentOverview, [type]: value });
   };
 
+  // Handle "What You Get" input changes
   const handleWhatYouGetInput = (key, value) => {
     setCurrentGet({ ...currentGet, [key]: value });
   };
 
+  // Handle "Who Is This For" input changes
   const handleWhoIsThisForInput = (value) => {
     setCurrentWho({ text: value });
   };
 
+  // Add or update overview point
   const addNewOverview = () => {
     if (currentOverview.heading && currentOverview.content) {
       const newOverview = [...courseData.overviewPoints];
@@ -128,6 +174,7 @@ const EditCourse = () => {
     }
   };
 
+  // Add or update "What You Get" item
   const addNewWhatYouGet = () => {
     if (currentGet.title && currentGet.description) {
       const newWhatYouGet = [...courseData.whatYouGet];
@@ -148,6 +195,7 @@ const EditCourse = () => {
     }
   };
 
+  // Add or update "Who Is This For" item
   const addNewWhoIsThisFor = () => {
     if (currentWho.text) {
       const newWhoIsThisFor = [...courseData.whoIsThisFor];
@@ -162,39 +210,46 @@ const EditCourse = () => {
     }
   };
 
+  // Remove overview point
   const handleRemoveOverview = (index) => {
     const newOverviews = [...courseData.overviewPoints];
     newOverviews.splice(index, 1);
     setCourseData({ ...courseData, overviewPoints: newOverviews });
   };
 
+  // Remove "What You Get" item
   const handleRemoveWhatYouGet = (index) => {
     const newWhatYouGet = [...courseData.whatYouGet];
     newWhatYouGet.splice(index, 1);
     setCourseData({ ...courseData, whatYouGet: newWhatYouGet });
   };
 
+  // Remove "Who Is This For" item
   const handleRemoveWhoIsThisFor = (index) => {
-    const newWhoTuesdayFor = [...courseData.whoIsThisFor];
-    newWhoTuesdayFor.splice(index, 1);
-    setCourseData({ ...courseData, whoIsThisFor: newWhoTuesdayFor });
+    const newWhoIsThisFor = [...courseData.whoIsThisFor];
+    newWhoIsThisFor.splice(index, 1);
+    setCourseData({ ...courseData, whoIsThisFor: newWhoIsThisFor });
   };
 
+  // Set overview point for editing
   const setEditValues = (overview, index) => {
     overview.updateIndex = index;
     setCurrentOverview(overview);
   };
 
+  // Set "What You Get" item for editing
   const setEditValuesGet = (item, index) => {
     setCurrentGet(item);
     setEditIndexGet(index);
   };
 
+  // Set "Who Is This For" item for editing
   const setEditValuesWho = (item, index) => {
     setCurrentWho(item);
     setEditIndexWho(index);
   };
 
+  // Add or update lesson
   const addLessontoCourse = (lesson) => {
     const safeLesson = {
       ...lesson,
@@ -219,6 +274,7 @@ const EditCourse = () => {
     setPopupOpen({ open: false, data: null });
   };
 
+  // Remove lesson
   const removeLessonFromCourse = (lesson) => {
     if (!lesson || lesson.updateIndex === undefined) return;
     const newLessons = [...courseData.lessons];
@@ -226,6 +282,7 @@ const EditCourse = () => {
     setCourseData({ ...courseData, lessons: newLessons });
   };
 
+  // Open lesson edit modal
   const openEditLesson = (lesson, index) => {
     if (!lesson) {
       console.error("Invalid lesson data:", lesson);
@@ -245,6 +302,7 @@ const EditCourse = () => {
     setPopupOpen({ open: true, data: safeLesson });
   };
 
+  // Update course
   const uploadCourse = async () => {
     const errors = validateCourseData();
     if (Object.keys(errors).length > 0) {
@@ -256,23 +314,41 @@ const EditCourse = () => {
       navigate("/admin/courses");
     } catch (error) {
       console.error("Failed to update course:", error);
-      setError("Failed to update course. Please try again.");
+      const errorMsg = error.response?.data?.message || "Failed to update course.";
+      setError(errorMsg);
     }
   };
 
+  // Delete course
   const deleteThisCourse = async () => {
     const confirm = window.confirm(
       "Confirm to delete this course. All lessons associated will be lost."
     );
     if (confirm) {
+      // Validate course ID
+      if (!id || typeof id !== "string" || id.trim() === "") {
+        setError("Invalid course ID. Unable to delete course.");
+        return;
+      }
+      setIsDeleting(true); // Set loading state
       try {
-        await DeleteCourseById(courseData._id);
+        await DeleteCourseById(id); // Use id from useParams
         navigate("/admin/courses");
       } catch (error) {
         console.error("Failed to delete course:", error);
-        setError("Failed to delete course. Please try again.");
+        const errorMsg = error.response?.data?.message || "Failed to delete course. Please try again.";
+        setError(errorMsg);
+      } finally {
+        setIsDeleting(false); // Reset loading state
       }
     }
+  };
+
+  // Handle file input for thumbnail
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    setCourseData({ ...courseData, thumbnail: file });
+    setSelectedFileName(file ? file.name : "");
   };
 
   return (
@@ -280,6 +356,9 @@ const EditCourse = () => {
       className="course-list-cnt p-4 new-course overflow-auto md:overflow-scroll"
       style={{ overflow: popupOpen.open ? "hidden" : "scroll" }}
     >
+      {/* Inject CSS styles */}
+      <style>{fileInputStyles}</style>
+
       {error && (
         <div className="error-message bg-red-100 text-red-700 p-3 mb-4 rounded">
           {error}
@@ -309,10 +388,11 @@ const EditCourse = () => {
         ) : (
           <div className="top-btn-cnt flex space-x-4">
             <div
-              className="course-delete-btn bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 cursor-pointer"
+              className={`course-delete-btn bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 cursor-pointer ${isDeleting ? "opacity-50 cursor-not-allowed" : ""}`}
               onClick={deleteThisCourse}
+              disabled={isDeleting}
             >
-              Delete Course
+              {isDeleting ? "Deleting..." : "Delete Course"}
             </div>
             <div
               className="add-new-lesson-btn bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 cursor-pointer"
@@ -371,15 +451,21 @@ const EditCourse = () => {
 
             <div className="course-name-cnt flex-1">
               <p className="text-sm font-semibold">Upload course thumbnail</p>
-              <input
-                type="file"
-                accept="image/*"
-                disabled={!editCourse}
-                onChange={(e) =>
-                  setCourseData({ ...courseData, thumbnail: e.target.files[0] })
-                }
-                className="styled-input mt-2 p-3 w-full border border-gray-300 rounded-lg"
-              />
+              <div className="file-input-wrapper mt-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  disabled={!editCourse}
+                  onChange={handleFileChange}
+                  id="thumbnail-upload"
+                />
+                <label
+                  htmlFor="thumbnail-upload"
+                  className={`file-input-label ${!editCourse ? "disabled" : ""}`}
+                >
+                  {selectedFileName || "Choose File"}
+                </label>
+              </div>
             </div>
           </div>
 
@@ -440,7 +526,7 @@ const EditCourse = () => {
             </h3>
             {editCourse && (
               <div
-                className="add-new-lesson-btn bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 cursor-pointer"
+                className="addgaanew-lesson-btn bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 cursor-pointer"
                 onClick={() => setPopupOpen({ open: true, data: null })}
               >
                 Add new lesson

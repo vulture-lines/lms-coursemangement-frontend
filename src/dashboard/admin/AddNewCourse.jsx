@@ -261,36 +261,41 @@ const AddNewCourse = () => {
     }
   };
 
-  const uploadCourse = async () => {
-    try {
-      setError(null);
-      setIsLoading(true);
+ const uploadCourse = async () => {
+  try {
+    setError(null);
+    setIsLoading(true);
 
-      const validationError = validateCourse();
-      if (validationError) {
-        setError(validationError);
-        return;
-      }
-
-      const response = await AddNewCourseApi(courseData);
-
-      if (response.data?.course) {
-        navigate("/admin");
-      } else {
-        throw new Error("Invalid response from server");
-      }
-    } catch (error) {
-      setError(
-        error.response?.data?.details ||
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to create course. Please try again."
-      );
-      console.error("Error creating course:", error);
-    } finally {
-      setIsLoading(false);
+    const validationError = validateCourse();
+    if (validationError) {
+      setError(validationError);
+      return;
     }
-  };
+
+    const response = await AddNewCourseApi(courseData);
+
+   
+
+    // Check if response contains course data (handle both cases)
+    if (response?.data?.course || response?.course) {
+ 
+      navigate("/admin");
+    } else {
+     
+      setError("Unexpected response from server. Please try again.");
+    }
+  } catch (error) {
+    console.error("Error creating course:", error);
+    setError(
+      error.response?.data?.details ||
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to create course. Please try again."
+    );
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="p-4">

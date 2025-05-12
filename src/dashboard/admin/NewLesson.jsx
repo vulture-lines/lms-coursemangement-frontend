@@ -17,7 +17,6 @@ const NewLesson = ({ addLesson, cancel, editData, removeThisLesson }) => {
 
   const [currentSublesson, setCurrentSublesson] = useState({
     title: "",
-    duration: "",
     updateIndex: null,
     test: null,
     file: {
@@ -42,7 +41,11 @@ const NewLesson = ({ addLesson, cancel, editData, removeThisLesson }) => {
     if (!file) return;
     const filetype = findFileType(file);
     setSublessonFile(file);
-    setCurrentSublesson({ ...currentSublesson, file: { url: "", type: filetype } });
+    setCurrentSublesson({
+      ...currentSublesson,
+      file: { url: "", type: filetype },
+      test: null, // Clear test when adding a file
+    });
     setErrors((prev) => ({ ...prev, file: null }));
   };
 
@@ -72,44 +75,41 @@ const NewLesson = ({ addLesson, cancel, editData, removeThisLesson }) => {
         setErrors((prev) => ({ ...prev, title: "Title is required" }));
         return;
       }
-      if (!currentSublesson.duration) {
-        setErrors((prev) => ({ ...prev, duration: "Duration is required" }));
-        return;
-      }
-      if (!sublessonFile && !currentSublesson.file.url) {
-        setErrors((prev) => ({ ...prev, file: "File is required" }));
+      if (!sublessonFile && !currentSublesson.file.url && !currentSublesson.test) {
+        setErrors((prev) => ({
+          ...prev,
+          file: "Either a file or a test is required",
+        }));
         return;
       }
 
       const newLessons = [...currentLesson.sublessons];
+      let sublessonData = { ...currentSublesson };
 
       if (sublessonFile) {
         const link = await uploadFile(sublessonFile);
-        const sublessonData = {
-          ...currentSublesson,
+        sublessonData = {
+          ...sublessonData,
           file: {
             url: link.fileUrl,
             type: link.fileType,
           },
+          test: null, // Ensure test is null when file is uploaded
         };
+      } else if (!sublessonData.file.url && !sublessonData.test) {
+        sublessonData.file = { url: "", type: "" };
+      }
 
-        if (currentSublesson.updateIndex === null) {
-          newLessons.push(sublessonData);
-        } else {
-          newLessons[currentSublesson.updateIndex] = sublessonData;
-        }
+      if (currentSublesson.updateIndex === null) {
+        newLessons.push(sublessonData);
       } else {
-        newLessons[currentSublesson.updateIndex] = {
-          ...currentSublesson,
-          file: currentSublesson.file || { url: "", type: "" },
-        };
+        newLessons[currentSublesson.updateIndex] = sublessonData;
       }
 
       setCurrentLesson({ ...currentLesson, sublessons: newLessons });
       setSublessonFile(null);
       setCurrentSublesson({
         title: "",
-        duration: "",
         updateIndex: null,
         file: { url: "", type: "" },
         test: null,
@@ -123,12 +123,15 @@ const NewLesson = ({ addLesson, cancel, editData, removeThisLesson }) => {
 
   const validateAndUpdateLesson = () => {
     setErrors({});
-    if (!currentLesson.title) {
+    if (!currentLesson.title.trim()) {
       setErrors((prev) => ({ ...prev, lessonTitle: "Lesson title is required" }));
       return;
     }
     if (currentLesson.sublessons.length === 0) {
-      setErrors((prev) => ({ ...prev, sublessons: "At least one sublesson is required" }));
+      setErrors((prev) => ({
+        ...prev,
+        sublessons: "At least one sublesson is required",
+      }));
       return;
     }
     addLesson(currentLesson);
@@ -162,7 +165,11 @@ const NewLesson = ({ addLesson, cancel, editData, removeThisLesson }) => {
           <AddTest
             testId={currentSublesson?.test}
             addTest={(data) =>
-              setCurrentSublesson({ ...currentSublesson, test: data })
+              setCurrentSublesson({
+                ...currentSublesson,
+                test: data,
+                file: { url: "", type: "" }, // Clear file when adding a test
+              })
             }
             closeTest={() => setOpenTest({ open: false })}
           />
@@ -199,20 +206,28 @@ const NewLesson = ({ addLesson, cancel, editData, removeThisLesson }) => {
             <h3 className="text-xl font-bold">Create New Lesson</h3>
           </div>
           <div>
-            <label htmlFor="lesson-title" className="mb-1 block text-sm font-medium">
-              Lesson Title
+            <label
+              htmlFor="lesson-title"
+              className="mb-1 block text-sm font-medium"
+            >
+              Lesson Title <span className="text-red-500">*</span>
             </label>
             <input
               id="lesson-title"
               type="text"
-              className="w-full border border-gray-300 rounded px-4 py-2 focus:ring-2 focus:ring-green-500"
+              className={`w-full border rounded px-4 py-2 focus:ring-2 focus:ring-green-500 ${
+                errors.lessonTitle ? "border-red-500" : "border-gray-300"
+              }`}
               value={currentLesson.title || ""}
-              onChange={(e) =>
-                setCurrentLesson({ ...currentLesson, title: e.target.value })
-              }
+              onChange={(e) => {
+                setCurrentLesson({ ...currentLesson, title: e.target.value });
+                setErrors((prev) => ({ ...prev, lessonTitle: null }));
+              }}
               placeholder="Enter lesson title"
               aria-invalid={!!errors.lessonTitle}
-              aria-describedby={errors.lessonTitle ? "lesson-title-error" : undefined}
+              aria-describedby={
+                errors.lessonTitle ? "lesson-title-error" : undefined
+              }
             />
             {errors.lessonTitle && (
               <p id="lesson-title-error" className="text-red-500 text-sm mt-1">
@@ -220,66 +235,97 @@ const NewLesson = ({ addLesson, cancel, editData, removeThisLesson }) => {
               </p>
             )}
           </div>
-          <button
+          {/* <button
             className="mt-3 flex items-center gap-2 bg-gray-100 p-3 rounded hover:bg-gray-200 w-full text-left"
             onClick={() => setOpenTest({ open: true, data: currentLesson.test })}
           >
             <Clipboard className="w-5 h-5 text-gray-600" />
             <p className="text-sm text-gray-700">
-              {currentLesson.test ? "Test - click to update" : "No tests have been created for this lesson"}
+              {currentLesson.test
+                ? "Test - click to update"
+                : "No tests have been created for this lesson"}
             </p>
-          </button>
+          </button> */}
         </div>
 
         {/* Sublesson Inputs */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
-            <label htmlFor="sublesson-title" className="mb-1 block text-sm font-medium">
+            <label
+              htmlFor="sublesson-title"
+              className="mb-1 block text-sm font-medium"
+            >
               Sublesson Title
             </label>
             <input
               id="sublesson-title"
               type="text"
-              className="w-full border border-gray-300 rounded px-4 py-2 focus:ring-2 focus:ring-green-500"
+              className={`w-full border rounded px-4 py-2 focus:ring-2 focus:ring-green-500 ${
+                errors.title ? "border-red-500" : "border-gray-300"
+              }`}
               value={currentSublesson.title}
               onChange={(e) => handleSubLessonsInput("title", e.target.value)}
               placeholder="Enter sublesson title"
               aria-invalid={!!errors.title}
-              aria-describedby={errors.title ? "sublesson-title-error" : undefined}
+              aria-describedby={
+                errors.title ? "sublesson-title-error" : undefined
+              }
             />
             {errors.title && (
-              <p id="sublesson-title-error" className="text-red-500 text-sm mt-1">
+              <p
+                id="sublesson-title-error"
+                className="text-red-500 text-sm mt-1"
+              >
                 {errors.title}
               </p>
             )}
           </div>
-          <div>
-            <label htmlFor="sublesson-duration" className="mb-1 block text-sm font-medium">
+          {/* <div> */}
+            {/* <label
+              htmlFor="sublesson-duration"
+              className="mb-1 block text-sm font-medium"
+            >
               Duration
-            </label>
-            <input
+            </label> */}
+            {/* <input
               id="sublesson-duration"
               type="text"
-              className="w-full border border-gray-300 rounded px-4 py-2 focus:ring-2 focus:ring-green-500"
+              className={`w-full border rounded px-4 py-2 focus:ring-2 focus:ring-green-500 ${
+                errors.duration ? "border-red-500" : "border-gray-300"
+              }`}
               value={currentSublesson.duration}
               onChange={(e) => handleSubLessonsInput("duration", e.target.value)}
-              placeholder="e.g., 10 min"
+              placeholder="e.g.10 min"
               aria-invalid={!!errors.duration}
-              aria-describedby={errors.duration ? "sublesson-duration-error" : undefined}
-            />
-            {errors.duration && (
-              <p id="sublesson-duration-error" className="text-red-500 text-sm mt-1">
+              aria-describedby={
+                errors.duration ? "sublesson-duration-error" : undefined
+              }
+            /> */}
+            {/* {errors.duration && (
+              <p
+                id="sublesson-duration-error"
+                className="text-red-500 text-sm mt-1"
+              >
                 {errors.duration}
               </p>
-            )}
-          </div>
+            )} */}
+          {/* </div> */}
           <div className="md:col-span-2">
-            <label htmlFor="sublesson-file" className="mb-1 block text-sm font-medium">
+            <label
+              htmlFor="sublesson-file"
+              className="mb-1 block text-sm font-medium"
+            >
               Upload Media
             </label>
-            <div className="relative w-full border border-dashed border-gray-400 p-3 rounded bg-gray-50">
+            <div
+              className={`relative w-full border border-dashed border-gray-400 p-3 rounded bg-gray-50 ${
+                currentSublesson.test ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+            >
               <p className="text-sm text-gray-600 truncate">
-                {sublessonFile?.name || currentSublesson.file.url || "Upload video, audio, PDF, or PowerPoint"}
+                {sublessonFile?.name ||
+                  currentSublesson.file.url ||
+                  "Upload video, audio, PDF, or PowerPoint"}
               </p>
               <input
                 id="sublesson-file"
@@ -287,7 +333,7 @@ const NewLesson = ({ addLesson, cancel, editData, removeThisLesson }) => {
                 className="absolute inset-0 opacity-0 cursor-pointer"
                 accept="video/*,audio/*,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
                 onChange={(e) => handleAddFile(e.target.files[0])}
-                disabled={uploadingFile}
+                disabled={uploadingFile || currentSublesson.test}
                 aria-describedby={errors.file ? "sublesson-file-error" : undefined}
               />
               {uploadingFile && (
@@ -320,6 +366,27 @@ const NewLesson = ({ addLesson, cancel, editData, removeThisLesson }) => {
                 {errors.file}
               </p>
             )}
+          </div>
+          <div className="md:col-span-2">
+            <button
+              className={`mt-3 flex items-center gap-2 bg-gray-100 p-3 rounded w-full text-left ${
+                (sublessonFile || currentSublesson.file.url)
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-gray-200"
+              }`}
+              onClick={() =>
+                !(sublessonFile || currentSublesson.file.url) &&
+                setOpenTest({ open: true, data: currentSublesson.test })
+              }
+              disabled={sublessonFile || currentSublesson.file.url}
+            >
+              <Clipboard className="w-5 h-5 text-gray-600" />
+              <p className="text-sm text-gray-700">
+                {currentSublesson.test
+                  ? "Test - click to update"
+                  : "Add a test for this sublesson"}
+              </p>
+            </button>
           </div>
           <div className="md:col-span-2">
             <button
@@ -382,13 +449,13 @@ const NewLesson = ({ addLesson, cancel, editData, removeThisLesson }) => {
                     />
                   </div>
                   <div>
-                    <p className="text-sm font-medium">Duration</p>
+                    {/* <p className="text-sm font-medium">Duration</p>
                     <input
                       type="text"
                       className="w-full border border-gray-300 rounded px-4 py-2 mt-1 bg-gray-50"
                       value={sublesson.duration}
                       readOnly
-                    />
+                    /> */}
                   </div>
                   <div className="col-span-2 mt-2">
                     <p className="text-sm font-medium">Media</p>

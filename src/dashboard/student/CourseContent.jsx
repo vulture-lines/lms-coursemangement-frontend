@@ -10,6 +10,9 @@ import {
   Maximize2,
   Minimize2,
 } from "lucide-react";
+// import * as pdfjsLib from "pdfjs-dist";
+// import pdfjsWorker from "pdfjs-dist/build/pdf.worker.entry";
+
 import { useParams } from "react-router";
 import {
   GetCourseProgress,
@@ -396,6 +399,8 @@ function CourseContent() {
           <video
             ref={videoRef}
             controls
+            controlsList="nodownload"
+            onContextMenu={(e) => e.preventDefault()}
             className="w-full h-full rounded-md"
             onClick={handleVideoClick}
             onEnded={() => markAsCompleted()}
@@ -429,6 +434,8 @@ function CourseContent() {
           />
           <audio
             controls
+            controlsList="nodownload"
+            onContextMenu={(e) => e.preventDefault()}
             className="w-full absolute bottom-0 bg-white p-2"
             onEnded={() => markAsCompleted()}
           >
