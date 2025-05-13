@@ -13,7 +13,7 @@ const AdminAchievements = () => {
   const [certificateLoading, setCertificateLoading] = useState(false);
   const [error, setError] = useState(null);
   const [certificatePreview, setCertificatePreview] = useState(null);
-  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm();
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm();
 
   // Fetch all achievements, users, and courses
   const fetchData = async () => {
@@ -21,13 +21,16 @@ const AdminAchievements = () => {
     setError(null);
     try {
       const achievementData = await GetAllCourseAchievements();
+      console.log('Fetched achievements:', achievementData);
       setAchievements(achievementData);
       const userData = await GetAllUsers();
+      console.log('Fetched users:', userData);
       setUsers(userData);
       const courseData = await GetAllCourses();
+      console.log('Fetched courses:', courseData);
       setCourses(courseData);
     } catch (err) {
-      setError(err.message || "Failed to load data");
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -51,8 +54,14 @@ const AdminAchievements = () => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Validate file type and size
     if (!file.type.startsWith('image/')) {
       setError('Please select a valid image file (e.g., JPG, PNG).');
+      return;
+    }
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      setError('File size exceeds 5MB limit.');
       return;
     }
 
@@ -64,14 +73,20 @@ const AdminAchievements = () => {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      console.log('Uploading file:', file.name, file.type, file.size);
       const res = await UploadFile(formData);
-      if (res?.fileUrl && typeof res.fileUrl === 'string' && res.fileUrl.startsWith('http')) {
-        setValue('certificateUrl', res.fileUrl);
+      console.log('UploadFile full response:', res);
+      const fileUrl = res?.data?.fileUrl || res?.data?.url || res?.data?.imageUrl;
+      if (fileUrl && typeof fileUrl === 'string' && fileUrl.startsWith('http')) {
+        setValue('certificateUrl', fileUrl);
+        console.log('Certificate URL set:', fileUrl);
       } else {
+        console.error('Invalid fileUrl:', fileUrl);
         throw new Error('Invalid response from server: fileUrl missing or invalid');
       }
     } catch (error) {
-      setError(error.message || 'Failed to upload certificate. Please try again.');
+      console.error('Certificate upload error:', error.response?.data || error.message);
+      setError(error.response?.data?.message || error.message || 'Failed to upload certificate. Please try again.');
       setCertificatePreview(null);
       setValue('certificateUrl', '');
     } finally {
@@ -82,11 +97,33 @@ const AdminAchievements = () => {
   const onSubmit = async (data) => {
     setIsLoading(true);
     setError(null);
+    console.log('Form data submitted:', data);
+    
+    // Validate userId and courseId
+    const userExists = users.find((user) => user._id === data.userId);
+    const courseExists = courses.find((course) => course._id === data.courseId);
+    if (!userExists) {
+      setError('Selected user does not exist. Please choose a valid user.');
+      setIsLoading(false);
+      return;
+    }
+    if (!courseExists) {
+      setError('Selected course does not exist. Please choose a valid course.');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       if (isEditing && currentAchievement) {
-        await UpdateCourseAchievement(currentAchievement._id, {
+        const updateData = {
+          user: data.userId, // Primary field
+          userId: data.userId, // Fallback for backend
+          courseId: data.courseId,
           certificateUrl: data.certificateUrl,
-        });
+        };
+        console.log('Sending update data:', updateData);
+        const response = await UpdateCourseAchievement(currentAchievement._id, updateData);
+        console.log('Update response:', response);
       } else {
         await CreateCourseAchievement({
           userId: data.userId,
@@ -101,21 +138,23 @@ const AdminAchievements = () => {
       setCurrentAchievement(null);
       setCertificatePreview(null);
     } catch (err) {
-      setError(err.message || 'Failed to save achievement');
+      console.error('Submit error:', err.message);
+      setError(err.message || 'Failed to update achievement. User or course may not exist.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleEdit = (achievement) => {
+    console.log('Editing achievement:', achievement);
     setCurrentAchievement(achievement);
     setIsEditing(true);
     setShowForm(true);
     setCertificatePreview(achievement.certificateUrl || null);
     reset({
-      userId: achievement.user,
-      courseId: achievement.courseId,
-      certificateUrl: achievement.certificateUrl,
+      userId: achievement.user || '',
+      courseId: achievement.courseId || '',
+      certificateUrl: achievement.certificateUrl || '',
     });
   };
 
@@ -138,6 +177,14 @@ const AdminAchievements = () => {
     setError(null);
     setCertificatePreview(null);
   };
+
+  // Watch form values for debugging
+  const watchedUserId = watch('userId');
+  const watchedCourseId = watch('courseId');
+  useEffect(() => {
+    console.log('Selected userId:', watchedUserId);
+    console.log('Selected courseId:', watchedCourseId);
+  }, [watchedUserId, watchedCourseId]);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -179,7 +226,7 @@ const AdminAchievements = () => {
                 id="userId"
                 {...register('userId', { required: 'User is required' })}
                 className={`w-full px-3 py-2 border rounded-md border-gray-300 ${errors.userId ? 'border-red-500' : ''}`}
-                disabled={isLoading || isEditing}
+                disabled={isLoading}
               >
                 <option value="">Select User</option>
                 {users.map((user) => (
@@ -199,7 +246,7 @@ const AdminAchievements = () => {
                 id="courseId"
                 {...register('courseId', { required: 'Course is required' })}
                 className={`w-full px-3 py-2 border rounded-md border-gray-300 ${errors.courseId ? 'border-red-500' : ''}`}
-                disabled={isLoading || isEditing}
+                disabled={isLoading}
               >
                 <option value="">Select Course</option>
                 {courses.map((course) => (
@@ -329,7 +376,8 @@ const AdminAchievements = () => {
                   </button>
                   <button
                     onClick={() => handleDownload(achievement)}
-                    className="p-2 text-gray-500 hover:text-green-600 rounded-full hover:bg-green-50 transition-colors duration-200"
+                    className="p-2 text-gray-500 saisir votre réponse
+                    hover:text-green-600 rounded-full hover:bg-green-50 transition-colors duration-200"
                     title="Download"
                     disabled={!achievement.certificateUrl}
                   >

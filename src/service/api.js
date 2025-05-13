@@ -85,6 +85,27 @@ export const AuthGoogleSignup = async ({ code, username }) => {
   }
 };
 
+// forgot password
+export const AuthForgotPassword = async (data) => {
+  try {
+    const res = await api.post("/api/auth/forgot-password", data);
+    return res.data;
+  } catch (error) {
+    throw new Error(extractErrorMessage(error));
+  }
+};
+
+
+// Reset Password
+export const AuthResetPassword = async ({ token, newPassword }) => {
+  try {
+    const res = await api.post(`/api/auth/reset-password/${token}`, { newPassword });
+    return res.data;
+  } catch (error) {
+    throw new Error(extractErrorMessage(error));
+  }
+};
+
 
 // Logout
 export const Logout = async () => {
@@ -513,6 +534,18 @@ export const UpdateAnnouncement = async (id, updateData) => {
     return res.data;
   } catch (error) {
     throw error.response?.data?.message || error.message || "Failed to update announcement";
+  }
+};
+// Delete announcement by ID
+export const DeleteAnnouncement = async (id) => {
+  try {
+    if (!id || typeof id !== "string" || id === "[object Object]") {
+      throw new Error("Valid announcement ID (non-empty string) is required");
+    }
+    const res = await axios.delete(`${baseUrl}/api/announcements/${id}`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to delete announcement";
   }
 };
 

@@ -19,10 +19,11 @@ const NewLesson = ({ addLesson, cancel, editData, removeThisLesson }) => {
     title: "",
     updateIndex: null,
     test: null,
-    file: {
-      url: "",
-      type: "",
-    },
+    file: null,
+    // {
+    //   url: "",
+    //   type: "",
+    // },
   });
 
   const [sublessonFile, setSublessonFile] = useState(null);
@@ -31,7 +32,8 @@ const NewLesson = ({ addLesson, cancel, editData, removeThisLesson }) => {
     if (editData) {
       const sanitizedSublessons = editData.sublessons.map((sublesson) => ({
         ...sublesson,
-        file: sublesson.file || { url: "", type: "" },
+        file: sublesson.file || null,
+        // file: sublesson.file || { url: "", type: "" },
       }));
       setCurrentLesson({ ...editData, sublessons: sanitizedSublessons });
     }
@@ -75,7 +77,7 @@ const NewLesson = ({ addLesson, cancel, editData, removeThisLesson }) => {
         setErrors((prev) => ({ ...prev, title: "Title is required" }));
         return;
       }
-      if (!sublessonFile && !currentSublesson.file.url && !currentSublesson.test) {
+      if (!sublessonFile && !currentSublesson.file?.url && !currentSublesson.test) {
         setErrors((prev) => ({
           ...prev,
           file: "Either a file or a test is required",
@@ -96,8 +98,9 @@ const NewLesson = ({ addLesson, cancel, editData, removeThisLesson }) => {
           },
           test: null, // Ensure test is null when file is uploaded
         };
-      } else if (!sublessonData.file.url && !sublessonData.test) {
-        sublessonData.file = { url: "", type: "" };
+      }
+       else if (!sublessonData.file?.url && !sublessonData.test) {
+        sublessonData.file = null;
       }
 
       if (currentSublesson.updateIndex === null) {
@@ -168,7 +171,8 @@ const NewLesson = ({ addLesson, cancel, editData, removeThisLesson }) => {
               setCurrentSublesson({
                 ...currentSublesson,
                 test: data,
-                file: { url: "", type: "" }, // Clear file when adding a test
+                file: null,
+                // file: { url: "", type: "" }, // Clear file when adding a test
               })
             }
             closeTest={() => setOpenTest({ open: false })}
@@ -324,7 +328,7 @@ const NewLesson = ({ addLesson, cancel, editData, removeThisLesson }) => {
             >
               <p className="text-sm text-gray-600 truncate">
                 {sublessonFile?.name ||
-                  currentSublesson.file.url ||
+                  currentSublesson.file?.url ||
                   "Upload video, audio, PDF, or PowerPoint"}
               </p>
               <input
@@ -370,15 +374,15 @@ const NewLesson = ({ addLesson, cancel, editData, removeThisLesson }) => {
           <div className="md:col-span-2">
             <button
               className={`mt-3 flex items-center gap-2 bg-gray-100 p-3 rounded w-full text-left ${
-                (sublessonFile || currentSublesson.file.url)
+                (sublessonFile || currentSublesson.file?.url)
                   ? "opacity-50 cursor-not-allowed"
                   : "hover:bg-gray-200"
               }`}
               onClick={() =>
-                !(sublessonFile || currentSublesson.file.url) &&
+                !(sublessonFile || currentSublesson.file?.url) &&
                 setOpenTest({ open: true, data: currentSublesson.test })
               }
-              disabled={sublessonFile || currentSublesson.file.url}
+              disabled={sublessonFile || currentSublesson.file?.url}
             >
               <Clipboard className="w-5 h-5 text-gray-600" />
               <p className="text-sm text-gray-700">
@@ -459,9 +463,21 @@ const NewLesson = ({ addLesson, cancel, editData, removeThisLesson }) => {
                   </div>
                   <div className="col-span-2 mt-2">
                     <p className="text-sm font-medium">Media</p>
-                    {sublesson.file && sublesson.file.url ? (
+                    {sublesson.file?.url ? (
+  <a
+    href={sublesson.file?.url}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="text-blue-600 underline hover:text-blue-800"
+  >
+    Open {sublesson.file.type}
+  </a>
+) : (
+  <p className="text-gray-500">No file uploaded</p>
+)}
+                    {/* {sublesson.file && sublesson.file.url ? (
                       <a
-                        href={sublesson.file.url}
+                        href={sublesson.}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 underline hover:text-blue-800"
@@ -470,7 +486,7 @@ const NewLesson = ({ addLesson, cancel, editData, removeThisLesson }) => {
                       </a>
                     ) : (
                       <p className="text-gray-500">No file uploaded</p>
-                    )}
+                    )} */}
                   </div>
                   <div className="col-span-2 mt-2">
                     <p className="text-sm font-medium">Test</p>

@@ -4,6 +4,9 @@ import Navbar from "./components/Navbar";
 import Home from "./Home/Home";
 // Authentication
 import Login from "./authentication/Login";
+import ForgotPassword from "./authentication/FogotPassword";
+import ResetPassword from "./authentication/ResetPassword";
+
 // Admin
 import AdminLayout from "./dashboard/admin/AdminLayout";
 import AdminDashboard from "./dashboard/admin/AdminDashboard";
@@ -18,6 +21,7 @@ import AdminAchievements from "./dashboard/admin/AdminAchievements";
 import AdminProgress from "./dashboard/admin/AdminProgress";
 import AdminQuery from "./dashboard/admin/AdminQuery";``
 import AdminForumPage from "./dashboard/admin/AdminForumPage";
+import AdminProfile from "./dashboard/admin/AdminProfile"
 // Student
 import StudentLayout from "./dashboard/student/StudentLayout";
 import StudentDashboard from "./dashboard/student/StudentDashboard";
@@ -52,6 +56,15 @@ export const Router = createBrowserRouter([
   {
     path: "login",
     element: <Login />,
+  },
+  {
+    path:"forgotpassword",
+    element:<ForgotPassword/>,
+  
+  },
+  {
+    path:"reset-password/:token",
+    element:<ResetPassword/>
   },
   {
     path: "admin",
@@ -111,6 +124,10 @@ export const Router = createBrowserRouter([
       {
         path: "forum",
         element: <AdminForumPage />,
+      },
+      {
+        path: "adminProfile",
+        element: <AdminProfile />,
       },
     ],
   },
