@@ -81,7 +81,7 @@ const AnnouncementList = () => {
                 </h2>
               </div>
               <p className="text-gray-600 mb-4">{announcement.message}</p>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-gray-500 border-t pt-3 mt-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-gray-500 border-t pt-3 mt-3 font-poppins">
                 <div className="mb-2 sm:mb-0">
                   <span>Posted by: {announcement.creator?.username || 'Unknown'}</span>
                 </div>

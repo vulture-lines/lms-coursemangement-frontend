@@ -116,7 +116,7 @@ const fetchData = async () => {
           <div className="flex justify-between items-center">
             <h3 className="mb-4 font-semibold">Courses in Progress</h3>
             <button
-              className="text-base rounded-md px-3 py-1 bg-green-500 text-white hover:bg-green-600 hover:text-green-50"
+              className="text-base rounded-md px-3 py-1 bg-green-500 text-white hover:bg-green-600 hover:text-green-50 font-poppins"
               onClick={() => navigate("/student/course")}
             >
               View

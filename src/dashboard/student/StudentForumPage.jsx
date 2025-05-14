@@ -397,11 +397,11 @@ const ForumPostCard = ({ post, currentUser, onUpdate, onDelete, onRefresh }) => 
           <span className="font-medium text-sm">{post.likes.length}</span>
         </div>
         <div className="flex-1">
-          <div className="text-sm text-gray-500 flex items-center gap-2 mb-1">
+          <div className="text-sm text-gray-500 flex items-center gap-2 mb-1 font-poppins">
             <span>Posted by u/{post.user.username}</span>•
             <span>{new Date(post.createdAt).toLocaleString()}</span>
           </div>
-          <h3 className="text-lg font-semibold">{post.title}</h3>
+          <h3 className="text-lg font-semibold font-poppins">{post.title}</h3>
           <div className="flex gap-2 mt-1">
             {post.tags.map((tag) => (
               <span key={tag} className="text-xs bg-gray-200 px-2 py-1 rounded">
@@ -419,7 +419,7 @@ const ForumPostCard = ({ post, currentUser, onUpdate, onDelete, onRefresh }) => 
               value={editedPost.title}
               onChange={(e) => setEditedPost({ ...editedPost, title: e.target.value })}
               placeholder="Post title"
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none"
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:outline-none font-poppins"
               aria-label="Edit post title"
             />
             <textarea
@@ -457,7 +457,7 @@ const ForumPostCard = ({ post, currentUser, onUpdate, onDelete, onRefresh }) => 
         <div className="flex items-center gap-4">
           <button
             onClick={() => setShowComments(!showComments)}
-            className="flex items-center gap-1 text-gray-600 hover:text-gray-800"
+            className="flex items-center gap-1 text-gray-600 hover:text-gray-800 font-poppins"
             aria-label={showComments ? "Hide comments" : "Show comments"}
           >
             <MessageSquare className="h-4 w-4" />

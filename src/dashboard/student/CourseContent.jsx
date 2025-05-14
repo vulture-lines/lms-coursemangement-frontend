@@ -288,10 +288,10 @@ function CourseContent() {
 
       return (
         <div className="p-4 sm:p-6">
-          <h2 className="text-lg sm:text-xl font-bold mb-6">{currentContent.title}</h2>
+          <h2 className="text-lg sm:text-xl font-bold mb-6 font-poppins">{currentContent.title}</h2>
           <div className="space-y-4">
             <div className="p-4 border rounded-lg">
-              <h3 className="font-semibold mb-3">
+              <h3 className="font-semibold mb-3 font-poppins">
                 Question {currentQuestionIndex + 1} of {totalQuestions}:{" "}
                 {currentQuestion.question}
               </h3>
@@ -341,7 +341,7 @@ function CourseContent() {
             {!isFirstQuestion && !submitted && (
               <button
                 onClick={handlePreviousQuestion}
-                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 font-poppins"
               >
                 Previous
               </button>
@@ -349,7 +349,7 @@ function CourseContent() {
             {!isLastQuestion && !submitted && (
               <button
                 onClick={handleNextQuestion}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-poppins"
               >
                 Next
               </button>
@@ -358,13 +358,13 @@ function CourseContent() {
               <button
                 onClick={handleTestSubmit}
                 disabled={Object.keys(answers).length !== totalQuestions}
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400"
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 font-poppins"
               >
                 Submit Test
               </button>
             )}
             {submitted && (
-              <div className="text-lg font-semibold">
+              <div className="text-lg font-semibold font-poppins">
                 Marks: {marks} / {totalQuestions}
               </div>
             )}

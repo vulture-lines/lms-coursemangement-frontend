@@ -206,7 +206,7 @@ function BigCalendar() {
           <h5 className="text-xl font-semibold">Calendar</h5>
           <button
             onClick={() => setShowModal(true)}
-            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 font-poppins"
           >
             Add Event
           </button>
@@ -286,13 +286,13 @@ function BigCalendar() {
             aria-modal="true"
             aria-labelledby="add-event-title"
           >
-            <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-              <h2 id="add-event-title" className="text-lg font-semibold mb-4">
+            <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md font-poppins">
+              <h2 id="add-event-title" className="text-lg font-semibold mb-4 font-poppins">
                 Add Event
               </h2>
               <div className="flex flex-col gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label className="block text-sm font-medium mb-1 font-poppins">
                     Event Title
                   </label>
                   <input
@@ -364,14 +364,14 @@ function BigCalendar() {
             <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm">
               <h2
                 id="delete-event-title"
-                className="text-lg font-semibold mb-4"
+                className="text-lg font-semibold mb-4 font-poppins"
               >
                 Delete Event
               </h2>
               <p>Are you sure you want to delete this event?</p>
               <div className="flex justify-end gap-2 mt-6">
                 <button
-                  className="bg-gray-300 px-4 py-2 rounded-md hover:bg-gray-400"
+                  className="bg-gray-300 px-4 py-2 rounded-md hover:bg-gray-400 font-poppins"
                   onClick={() => {
                     setShowDeleteConfirmation(false);
                     setEventToDelete(null);
@@ -381,7 +381,7 @@ function BigCalendar() {
                   Cancel
                 </button>
                 <button
-                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 font-poppins"
                   onClick={handleDeleteEvent}
                 >
                   Delete

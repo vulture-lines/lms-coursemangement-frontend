@@ -21,7 +21,8 @@ import AdminAchievements from "./dashboard/admin/AdminAchievements";
 import AdminProgress from "./dashboard/admin/AdminProgress";
 import AdminQuery from "./dashboard/admin/AdminQuery";``
 import AdminForumPage from "./dashboard/admin/AdminForumPage";
-import AdminProfile from "./dashboard/admin/AdminProfile"
+import AdminProfile from "./dashboard/admin/AdminProfile";
+import AdminExam from "./dashboard/admin/AdminExam";
 // Student
 import StudentLayout from "./dashboard/student/StudentLayout";
 import StudentDashboard from "./dashboard/student/StudentDashboard";
@@ -105,6 +106,11 @@ export const Router = createBrowserRouter([
         path: "notification",
         element: <AdminNotification />,
       },
+      {
+        path: "exam",
+        element: <AdminExam />,
+      },
+      
       {
         path: "calendar",
         element: <AdminCalendar />,

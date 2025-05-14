@@ -71,7 +71,7 @@ function Achievements() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-800 mb-8">Course Certificates</h1>
+      <h1 className="text-2xl font-bold text-gray-800 mb-8 font-poppins">Course Certificates</h1>
 
       {isLoading && (
         <div className="text-center text-gray-500">Loading...</div>
@@ -109,10 +109,10 @@ function Achievements() {
                 <h3 className="text-lg font-semibold text-gray-800 mb-2">
                   {achievement.courseTitle}
                 </h3>
-                <p className="text-gray-600 text-sm mb-2">
+                <p className="text-gray-600 text-sm mb-2 font-poppins">
                   Awarded to: {achievement.username || 'Unknown'}
                 </p>
-                <p className="text-gray-600 text-sm mb-4">
+                <p className="text-gray-600 text-sm mb-4 font-poppins">
                   Completed: {formatDate(achievement.completedAt)}
                 </p>
                 <div className="flex justify-end space-x-2">

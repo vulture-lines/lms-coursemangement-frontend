@@ -1,10 +1,12 @@
 import { Outlet } from "react-router";
 import DashboardSidebar from "../../components/DashboardSidebar";
 import DashboardNavbar from "../../components/DashboardNavbar";
-import { AwardIcon, Bell, BookOpen, Calendar, Home, Megaphone, MessagesSquare, Users } from "lucide-react";
+import { AwardIcon, Bell, BookOpen, Calendar, Home, Megaphone, MessagesSquare, Users, Clipboard } from "lucide-react";
+// import { AwardIcon, Bell, BookOpen, Calendar, Home, Megaphone, MessagesSquare, Users } from "lucide-react";
 import { BiAward, BiCertification } from "react-icons/bi";
 import { GiProgression } from "react-icons/gi";
 import { MdQueryBuilder, MdQueryStats } from "react-icons/md";
+
 function AdminLayout() {
   const NavLinks = [
     {
@@ -21,6 +23,11 @@ function AdminLayout() {
       path: "/admin/courses",
       label: "Courses",
       icon: <BookOpen className="h-5" />,
+    },
+    {
+      path: "/admin/exam",
+      label: "Exam",
+      icon: <Clipboard className="h-5" />,
     },
     {
       path: "/admin/calendar",

@@ -19,7 +19,8 @@ api.interceptors.request.use(
     const loginData = JSON.parse(localStorage.getItem("loginData"));
     const token = loginData?.token;
     if (token) {
-      config.headers.Authorization = Bearer `${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
+      // config.headers.Authorization = Bearer `${token}`;
     }
     return config;
   },
@@ -30,14 +31,29 @@ api.interceptors.request.use(
 const extractErrorMessage = (error) => {
   if (error.response?.data) {
     const data = error.response.data;
-    if (data.password) return data.password;
-    if (data.email) return data.email;
-    if (data.username) return data.username;
-    if (data.message) return data.message;
-    return JSON.stringify(data);
+    // Check for specific error fields and return the first available message
+    if (data.error) return Array.isArray(data.error) ? data.error[0] : data.error;
+    if (data.password) return Array.isArray(data.password) ? data.password[0] : data.password;
+    if (data.email) return Array.isArray(data.email) ? data.email[0] : data.email;
+    if (data.username) return Array.isArray(data.username) ? data.username[0] : data.username;
+    if (data.message) return Array.isArray(data.message) ? data.message[0] : data.message;
+    // Fallback: return a generic message if no specific fields are found
+    return "An unexpected error occurred. Please try again.";
   }
   return error.message || "An unexpected error occurred.";
 };
+// Helper function to extract error message from response
+// const extractErrorMessage = (error) => {
+//   if (error.response?.data) {
+//     const data = error.response.data;
+//     if (data.password) return data.password;
+//     if (data.email) return data.email;
+//     if (data.username) return data.username;
+//     if (data.message) return data.message;
+//     return JSON.stringify(data);
+//   }
+//   return error.message || "An unexpected error occurred.";
+// };
 
 // ================================= Authentication Section ========================
 
@@ -983,3 +999,138 @@ export const deleteTodo = async (id) => {
 };
 
 // ================================= Todo Section =======================================
+//==================================Exam================================================
+// Create a new exam
+export const CreateExam = async (examData) => {
+  try {
+    if (!examData || typeof examData !== "object" || Object.keys(examData).length === 0) {
+      throw new Error("Valid exam data is required");
+    }
+    const res = await axios.post(`${baseUrl}/api/exam`, examData);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.error || error.message || "Failed to create exam";
+  }
+};
+
+// Get all exams
+export const GetAllExams = async () => {
+  try {
+    const res = await axios.get(`${baseUrl}/api/exam`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.error || error.message || "Failed to fetch exams";
+  }
+};
+
+// Get exam by ID
+export const GetExamById = async (examId) => {
+  try {
+    if (!examId || typeof examId !== "string" || examId === "[object Object]") {
+      throw new Error("Valid exam ID (non-empty string) is required");
+    }
+    const res = await axios.get(`${baseUrl}/api/exam/${examId}`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.error || error.message || "Failed to fetch exam";
+  }
+};
+
+// Update exam by ID
+export const UpdateExamById = async (examId, examData) => {
+  try {
+    if (!examId || typeof examId !== "string" || examId === "[object Object]") {
+      throw new Error("Valid exam ID (non-empty string) is required");
+    }
+    if (!examData || typeof examData !== "object" || Object.keys(examData).length === 0) {
+      throw new Error("Valid exam data is required");
+    }
+    const res = await axios.put(`${baseUrl}/api/exam/${examId}`, examData);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.error || error.message || "Failed to update exam";
+  }
+};
+
+// Delete exam by ID
+export const DeleteExamById = async (examId) => {
+  try {
+    if (!examId || typeof examId !== "string" || examId === "[object Object]") {
+      throw new Error("Valid exam ID (non-empty string) is required");
+    }
+    const res = await axios.delete(`${baseUrl}/api/exam/${examId}`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.error || error.message || "Failed to delete exam";
+  }
+};
+
+// Toggle exam publish status
+export const ToggleExamPublish = async (examId) => {
+  try {
+    if (!examId || typeof examId !== "string" || examId === "[object Object]") {
+      throw new Error("Valid exam ID (non-empty string) is required");
+    }
+    const res = await axios.put(`${baseUrl}/api/exam/toggle/${examId}`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.error || error.message || "Failed to toggle exam publish status";
+  }
+};
+
+//=========================================Exam====================================================
+
+//========================================Answer===================================================
+// Submit answers for an exam
+export const SubmitExamAnswers = async (examId, submissionData) => {
+  try {
+    if (!examId || typeof examId !== "string" || examId === "[object Object]") {
+      throw new Error("Valid exam ID (non-empty string) is required");
+    }
+    if (!submissionData || typeof submissionData !== "object" || Object.keys(submissionData).length === 0) {
+      throw new Error("Valid submission data is required");
+    }
+    const res = await axios.post(`${baseUrl}/api/useranswer/submit/${examId}`, submissionData);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.error || error.message || "Failed to submit exam answers";
+  }
+};
+
+// Get current user's exam results
+export const GetUserExamResults = async (examId) => {
+  try {
+    if (!examId || typeof examId !== "string" || examId === "[object Object]") {
+      throw new Error("Valid exam ID (non-empty string) is required");
+    }
+    const res = await axios.get(`${baseUrl}/api/useranswer/result/${examId}`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.error || error.message || "Failed to fetch exam results";
+  }
+};
+
+// Get ranking for an exam
+export const GetExamRankings = async (examId) => {
+  try {
+    if (!examId || typeof examId !== "string" || examId === "[object Object]") {
+      throw new Error("Valid exam ID (non-empty string) is required");
+    }
+    const res = await axios.get(`${baseUrl}/api/useranswer/ranking/${examId}`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.error || error.message || "Failed to fetch exam rankings";
+  }
+};
+
+// Get all exam submissions (mentor-only)
+export const GetAllExamSubmissions = async () => {
+  try {
+    const res = await axios.get(`${baseUrl}/api/useranswer/all`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.error || error.message || "Failed to fetch all exam submissions";
+  }
+};
+
+//=========================================Answer==================================================+

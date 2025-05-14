@@ -112,7 +112,7 @@ function Notification({ onClose }) {
               {!notification.isRead && (
                 <button
                   onClick={() => handleMarkAsRead(notification.id)}
-                  className="bg-white border border-gray-400 text-gray-800 text-sm font-semibold py-1 px-4 rounded-lg hover:bg-gray-100 transition-colors w-32 min-w-[128px] flex-shrink-0 text-center"
+                  className="bg-white border border-gray-400 text-gray-800 text-sm font-semibold py-1 px-4 rounded-lg hover:bg-gray-100 transition-colors w-32 min-w-[128px] flex-shrink-0 text- font-poppins"
                   disabled={isLoading}
                 >
                   Mark As Read

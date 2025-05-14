@@ -153,7 +153,7 @@ const Accordion = ({ course }) => {
           {lesson.sublessons?.map((sublesson, index) => (
             <div className="px-3 py-2 flex items-center gap-2 text-green-800 font-semibold w-full">
               <PlayCircle className="h-5 w-5 text-green-800" />
-              <span className="text-green-800 font-medium w-full">
+              <span className="text-green-800 font-medium w-full font-poppins">
                 {sublesson.title}
               </span>
             </div>
