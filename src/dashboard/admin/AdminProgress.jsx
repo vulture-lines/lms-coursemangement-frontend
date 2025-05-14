@@ -38,8 +38,8 @@ const ProgressReportTable = ({ progressData, isLoading, error }) => {
             <tr className="bg-green-600 text-white text-sm font-medium h-10 text-left divide-x divide-gray-200">
               <th className="px-2">COURSE</th>
               <th className="px-2 w-24">PROGRESS</th>
-              <th className="px-2 w-24">COMPLETED LESSONS</th>
-              <th className="px-2 w-56">USERNAME</th>
+              <th className="px-2 w-50">COMPLETED LESSONS</th>
+              <th className="px-2 w-38">USERNAME</th>
               <th className="px-2 w-24">STATUS</th>
             </tr>
           </thead>
