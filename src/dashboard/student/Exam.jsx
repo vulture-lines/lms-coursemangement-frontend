@@ -1,9 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GetAllExams } from '../../service/api';
+import { GetAllExams, GetUserExamResults } from '../../service/api';
 
 const Exam = () => {
   const navigate = useNavigate();
+
+  // Get current user ID from localStorage
+  let userInfo = {};
+  try {
+    userInfo = JSON.parse(localStorage.getItem('loginData')) || {};
+  } catch (e) {
+    console.error('Failed to parse loginData:', e);
+  }
+  const currentUserId = userInfo.user?._id;
 
   // State to manage visibility of each course's exams
   const [openCourses, setOpenCourses] = useState({});
@@ -15,6 +24,11 @@ const Exam = () => {
 
   // State to track selected exam
   const [selectedExam, setSelectedExam] = useState(null);
+
+  // State for exam results
+  const [examResults, setExamResults] = useState(null);
+  const [resultsLoading, setResultsLoading] = useState(false);
+  const [resultsError, setResultsError] = useState(null);
 
   // State for mobile sidebar visibility
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -66,6 +80,28 @@ const Exam = () => {
     fetchExams();
   }, []);
 
+  // Fetch exam results when selectedExam changes
+  useEffect(() => {
+    const fetchExamResults = async () => {
+      if (!selectedExam || !currentUserId) {
+        setExamResults(null);
+        return;
+      }
+      try {
+        setResultsLoading(true);
+        setResultsError(null);
+        const results = await GetUserExamResults(selectedExam.id);
+        setExamResults(results);
+      } catch (err) {
+        console.error('Failed to fetch exam results:', err);
+        setResultsError(err.message || 'Failed to load exam results.');
+      } finally {
+        setResultsLoading(false);
+      }
+    };
+    fetchExamResults();
+  }, [selectedExam, currentUserId]);
+
   // Toggle course visibility
   const toggleCourse = (courseId) => {
     setOpenCourses((prev) => ({
@@ -86,12 +122,14 @@ const Exam = () => {
     }
   };
 
-  // Format createdAt date
+  // Format date
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
@@ -101,7 +139,7 @@ const Exam = () => {
     return exam ? exam.courseTitle : 'Unknown Course';
   };
 
-  // Render loading or error states
+  // Render loading or error states for exams
   if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-100 justify-center items-center pt-16">
@@ -116,7 +154,7 @@ const Exam = () => {
         <p className="text-base sm:text-lg text-red-600">{error}</p>
         <button
           className="mt-4 bg-blue-500 text-white py-2 px-4 rounded text-sm sm:text-base"
-          onClick={() => fetchExams()}
+          onClick={() => window.location.reload()}
         >
           Retry
         </button>
@@ -270,7 +308,7 @@ const Exam = () => {
                 )}
                 <div>
                   <p className="text-xs sm:text-sm text-gray-500">Total Questions:</p>
-                  <p className="text-base sm:text-lg font-medium">{selectedExam?.questions.length|| 'N/A'}</p>
+                  <p className="text-base sm:text-lg font-medium">{selectedExam?.questions.length || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-xs sm:text-sm text-gray-500">Duration:</p>
@@ -312,6 +350,70 @@ const Exam = () => {
               >
                 {selectedExam?.attempted ? 'Attempted' : !selectedExam?.isPublished ? 'Not Published' : 'Attempt Now'}
               </button>
+            </div>
+
+            {/* Past Attempts Section */}
+            <div className="mt-8">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Past Attempts</h2>
+              {resultsLoading ? (
+                <p className="text-base sm:text-lg text-gray-600">Loading past attempts...</p>
+              ) : resultsError ? (
+                <div className="flex flex-col items-start">
+                  <p className="text-base sm:text-lg text-red-600">{resultsError}</p>
+                  <button
+                    className="mt-4 bg-blue-500 text-white py-2 px-4 rounded text-sm sm:text-base"
+                    onClick={() => fetchExamResults()}
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : !examResults || !examResults.attempts?.length ? (
+                <p className="text-base sm:text-lg text-gray-600">No past attempts for this exam.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full bg-white border border-gray-200">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="py-2 px-4 text-left text-sm font-medium text-gray-500">Attempt</th>
+                        <th className="py-2 px-4 text-left text-sm font-medium text-gray-500">Score</th>
+                        <th className="py-2 px-4 text-left text-sm font-medium text-gray-500">Percentage</th>
+                        <th className="py-2 px-4 text-left text-sm font-medium text-gray-500">Duration (min)</th>
+                        <th className="py-2 px-4 text-left text-sm font-medium text-gray-500">Correct Answers</th>
+                        <th className="py-2 px-4 text-left text-sm font-medium text-gray-500">Submitted On</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {examResults.attempts.map((attempt, index) => {
+                        const correctAnswers = attempt.answers.filter((a) => a.isCorrect).length;
+                        const totalQuestions = attempt.answers.length;
+                        return (
+                          <tr key={index} className="border-t border-gray-200">
+                            <td className="py-2 px-4 text-sm text-gray-900">{index + 1}</td>
+                            <td className="py-2 px-4 text-sm text-gray-900">{attempt.score}/{examResults.totalMarks}</td>
+                            <td className="py-2 px-4 text-sm text-gray-900">{attempt.percentage.toFixed(2)}%</td>
+                            <td className="py-2 px-4 text-sm text-gray-900">{attempt.completedDuration || 'N/A'}</td>
+                            <td className="py-2 px-4 text-sm text-gray-900">{correctAnswers}/{totalQuestions}</td>
+                            <td className="py-2 px-4 text-sm text-gray-900">{formatDate(attempt.submittedAt)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-500">
+                      <span className="font-medium">Best Score:</span> {examResults.bestScore}/{examResults.totalMarks}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      <span className="font-medium">Best Percentage:</span> {examResults.bestPercentage.toFixed(2)}%
+                    </p>
+                    {examResults.rank && (
+                      <p className="text-sm text-gray-500">
+                        <span className="font-medium">Rank:</span> {examResults.rank}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
