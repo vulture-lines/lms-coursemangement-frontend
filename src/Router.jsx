@@ -39,6 +39,10 @@ import { GetAllCourses, GetAllUsers } from "./service/api";
 import Profile from "./dashboard/student/Profile";
 import Query from "./dashboard/student/Query";
 import Notification from "./dashboard/student/Notification";
+import MockExam from "./dashboard/student/Exam";
+import ExamQuestion from "./dashboard/student/ExamQuestion";
+import ExamReview from "./dashboard/student/ExamReview";
+
 import { Suspense } from "react";
 
 export const Router = createBrowserRouter([
@@ -178,6 +182,18 @@ export const Router = createBrowserRouter([
       {
         path: "calender",
         element: <BigCalendar />,
+      },
+      {
+        path: "mockexam",
+        element: <MockExam />,
+      },
+     {
+        path: "examquestion",
+        element: <ExamQuestion />,
+      },
+      {
+        path: "examreview",
+        element: <ExamReview />,
       },
       {
         path: "exam",

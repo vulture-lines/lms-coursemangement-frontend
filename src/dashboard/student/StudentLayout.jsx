@@ -13,7 +13,9 @@ import {
   MessageCircleQuestion,
   MessagesSquare,
   Bell,
+  Clipboard,
 } from "lucide-react";
+
 import { Suspense } from "react";
 
 function StudentLayout() {
@@ -33,6 +35,11 @@ function StudentLayout() {
       path: "/student/calender",
       label: "Calender",
       icon: <Calendar className="h-5" />,
+    },
+    {
+      path: "/student/mockexam",
+      label: "MockExam",
+      icon: <Clipboard className="h-5" />,
     },
     {
       path: "/student/exam",
