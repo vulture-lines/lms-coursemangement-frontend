@@ -4,20 +4,19 @@ import { CreateExam, GetAllExams, GetExamById, UpdateExamById, DeleteExamById, T
 const AdminExam = () => {
   // State for exams
   const [exams, setExams] = useState([]);
-
+  // State for courses
+  const [courses, setCourses] = useState([]);
   // State for new exam form in sidebar
   const [addingExam, setAddingExam] = useState(false);
   const [newExam, setNewExam] = useState({
     title: '',
     subject: '',
     courseId: '',
-    courseTitle: '',
     duration: '',
     isPublished: false,
     tags: '',
     questions: [],
   });
-
   // State for new question form
   const [newQuestion, setNewQuestion] = useState({
     question: '',
@@ -25,15 +24,13 @@ const AdminExam = () => {
     correctAnswer: '',
     explanation: '',
   });
-
   // State for selected exam to edit
   const [selectedExam, setSelectedExam] = useState(null);
-
   // State for question form visibility and editing
   const [showQuestionForm, setShowQuestionForm] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
 
-  // Fetch exams on component mount
+  // Fetch exams and courses on component mount
   useEffect(() => {
     const fetchExams = async () => {
       try {
@@ -63,21 +60,38 @@ const AdminExam = () => {
         alert('Failed to load exams. Please try again.');
       }
     };
+
+    const fetchCourses = async () => {
+      try {
+        const response = await GetAllCourses();
+        setCourses(response); // Assuming response is an array of courses with _id and title
+      } catch (error) {
+        console.error('Failed to fetch courses:', error);
+        alert('Failed to load courses. Please try again.');
+      }
+    };
+
     fetchExams();
+    fetchCourses();
   }, []);
 
   // Handle adding a new exam
   const handleAddExam = async (e) => {
     e.preventDefault();
-    if (!newExam.title.trim() || !newExam.courseId.trim() || !newExam.courseTitle.trim() || !newExam.duration) {
-      alert('Please fill all required exam fields (including Course ID)');
+    if (!newExam.title.trim() || !newExam.courseId || !newExam.duration) {
+      alert('Please fill all required exam fields (including Course)');
+      return;
+    }
+    const selectedCourse = courses.find((course) => course._id === newExam.courseId);
+    if (!selectedCourse) {
+      alert('Selected course is invalid');
       return;
     }
     const examData = {
       title: newExam.title,
       subject: newExam.subject,
       courseId: newExam.courseId,
-      courseTitle: newExam.courseTitle,
+      courseTitle: selectedCourse.title,
       duration: parseInt(newExam.duration),
       questions: [],
       isPublished: newExam.isPublished,
@@ -112,7 +126,6 @@ const AdminExam = () => {
         title: '',
         subject: '',
         courseId: '',
-        courseTitle: '',
         duration: '',
         isPublished: false,
         tags: '',
@@ -131,7 +144,6 @@ const AdminExam = () => {
       title: '',
       subject: '',
       courseId: '',
-      courseTitle: '',
       duration: '',
       isPublished: false,
       tags: '',
@@ -147,7 +159,6 @@ const AdminExam = () => {
       title: exam.title,
       subject: exam.subject || '',
       courseId: exam.courseId,
-      courseTitle: exam.courseTitle,
       duration: exam.duration.toString(),
       isPublished: exam.isPublished,
       tags: exam.tags.join(', '),
@@ -161,15 +172,20 @@ const AdminExam = () => {
   // Handle updating an exam
   const handleUpdateExam = async (e) => {
     e.preventDefault();
-    if (!newExam.title.trim() || !newExam.courseId.trim() || !newExam.courseTitle.trim() || !newExam.duration) {
-      alert('Please fill all required exam fields (including Course ID)');
+    if (!newExam.title.trim() || !newExam.courseId || !newExam.duration) {
+      alert('Please fill all required exam fields (including Course)');
+      return;
+    }
+    const selectedCourse = courses.find((course) => course._id === newExam.courseId);
+    if (!selectedCourse) {
+      alert('Selected course is invalid');
       return;
     }
     const examData = {
       title: newExam.title,
       subject: newExam.subject,
       courseId: newExam.courseId,
-      courseTitle: newExam.courseTitle,
+      courseTitle: selectedCourse.title,
       duration: parseInt(newExam.duration),
       questions: selectedExam.questions.map((q) => ({
         question: q.question,
@@ -212,7 +228,6 @@ const AdminExam = () => {
         title: '',
         subject: '',
         courseId: '',
-        courseTitle: '',
         duration: '',
         isPublished: false,
         tags: '',
@@ -238,7 +253,6 @@ const AdminExam = () => {
           title: '',
           subject: '',
           courseId: '',
-          courseTitle: '',
           duration: '',
           isPublished: false,
           tags: '',
@@ -302,7 +316,7 @@ const AdminExam = () => {
       title: selectedExam.title,
       subject: selectedExam.subject,
       courseId: selectedExam.courseId,
-      courseTitle: selectedExam.courseTitle,
+      courseTitle: courses.find((course) => course._id === selectedExam.courseId)?.title || '',
       duration: selectedExam.duration,
       questions: updatedQuestions.map((q) => ({
         question: q.question,
@@ -381,7 +395,7 @@ const AdminExam = () => {
       title: selectedExam.title,
       subject: selectedExam.subject,
       courseId: selectedExam.courseId,
-      courseTitle: selectedExam.courseTitle,
+      courseTitle: courses.find((course) => course._id === selectedExam.courseId)?.title || '',
       duration: selectedExam.duration,
       questions: updatedQuestions.map((q) => ({
         question: q.question,
@@ -502,9 +516,7 @@ const AdminExam = () => {
                           <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                             <path
                               fillRule="evenodd"
-                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 
-
-01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
                               clipRule="evenodd"
                             />
                           </svg>
@@ -580,24 +592,20 @@ const AdminExam = () => {
                         value={newExam.subject}
                         onChange={handleExamInputChange}
                       />
-                      <input
-                        type="text"
+                      <select
                         name="courseId"
                         className="w-full p-1 border border-gray-300 rounded text-sm"
-                        placeholder="Course ID"
                         value={newExam.courseId}
                         onChange={handleExamInputChange}
                         required
-                      />
-                      <input
-                        type="text"
-                        name="courseTitle"
-                        className="w-full p-1 border border-gray-300 rounded text-sm"
-                        placeholder="Course title"
-                        value={newExam.courseTitle}
-                        onChange={handleExamInputChange}
-                        required
-                      />
+                      >
+                        <option value="">Select a course</option>
+                        {courses.map((course) => (
+                          <option key={course._id} value={course._id}>
+                            {course.title}
+                          </option>
+                        ))}
+                      </select>
                       <input
                         type="number"
                         name="duration"
@@ -689,28 +697,21 @@ const AdminExam = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-500">Course ID</label>
-                    <input
-                      type="text"
+                    <label className="block text-sm text-gray-500">Course</label>
+                    <select
                       name="courseId"
                       className="w-full p-2 border border-gray-300 rounded text-sm"
-                      placeholder="Enter course ID"
                       value={newExam.courseId}
                       onChange={handleExamInputChange}
                       required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-500">Course Title</label>
-                    <input
-                      type="text"
-                      name="courseTitle"
-                      className="w-full p-2 border border-gray-300 rounded text-sm"
-                      placeholder="Enter course title"
-                      value={newExam.courseTitle}
-                      onChange={handleExamInputChange}
-                      required
-                    />
+                    >
+                      <option value="">Select a course</option>
+                      {courses.map((course) => (
+                        <option key={course._id} value={course._id}>
+                          {course.title}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm text-gray-500">Duration (minutes)</label>
@@ -725,7 +726,7 @@ const AdminExam = () => {
                       required
                     />
                   </div>
-                  <div>
+                  {/* <div>
                     <label className="block text-sm text-gray-500">Total Marks</label>
                     <input
                       type="number"
@@ -733,7 +734,7 @@ const AdminExam = () => {
                       value={selectedExam.questions.length}
                       readOnly
                     />
-                  </div>
+                  </div> */}
                   <div>
                     <label className="block text-sm text-gray-500">Tags (comma-separated)</label>
                     <input
@@ -777,7 +778,6 @@ const AdminExam = () => {
                         title: '',
                         subject: '',
                         courseId: '',
-                        courseTitle: '',
                         duration: '',
                         isPublished: false,
                         tags: '',
