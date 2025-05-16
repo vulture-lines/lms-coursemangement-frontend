@@ -21,9 +21,17 @@ const fetchData = async () => {
     const enrolledCourses = data.enrolledCourses || [];
 
     // filter out enrollments with missing courseId
-    const validCourses = enrolledCourses.filter(
-      (item) => item.courseId && item.courseId._id
-    );
+    // const validCourses = enrolledCourses.filter(
+    //   (item) => item.courseId && item.courseId._id
+    // );
+    // Filter for only approved and not expired enrollments
+const validCourses = enrolledCourses.filter((item) => {
+  const hasCourse = item.courseId && item.courseId._id;
+  const isApproved = item.isApproved === true;
+  const notExpired = new Date(item.expiryDate) > new Date();
+  return hasCourse && isApproved && notExpired;
+});
+
 
     const courseIds = validCourses.map((item) => item.courseId._id);
     setPurchasedCourses(courseIds);
@@ -143,7 +151,7 @@ const CourseProgressCard = ({ course }) => {
       <p className="text-xs font-semibold bg-green-200 px-2 py-1 inline rounded-full">
         Course
       </p>
-      <div className="bg-green-200 w-full h-20 rounded-md mt-2">
+      <div className="bg-green-200 w-full h-32 rounded-md mt-2">
         <img
           src={course.thumbnail}
           alt="logo"
