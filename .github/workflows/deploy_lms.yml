@@ -1,28 +1,40 @@
-name: Deploy Frontend to EC2
+name: Deploy LMS Frontend
 
 on:
   push:
     branches:
-      - main
+      - main   # or your branch name
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Setup Node.js 18
+    - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: 18
+        node-version: '18'   # or your node version
 
     - name: Install dependencies
       run: npm install
 
-    - name: Build frontend (Vite)
+    - name: Build frontend
       run: npm run build
+
+    - name: List build folder
+      run: ls -al dist
+
+    - name: Clean target directory on EC2
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ubuntu
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          sudo rm -rf /var/www/html/LMS_frontend/*
 
     - name: Copy build files to EC2
       uses: appleboy/scp-action@v0.1.7
