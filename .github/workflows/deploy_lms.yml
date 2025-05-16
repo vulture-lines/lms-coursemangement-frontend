@@ -3,54 +3,44 @@ name: Deploy LMS Frontend
 on:
   push:
     branches:
-      - main   # or your branch name
+      - main
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
+    - name: Checkout repo
       uses: actions/checkout@v3
 
     - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '18'   # or your node version
+        node-version: '18'
 
     - name: Install dependencies
-      run: npm install
+      run: npm ci
 
     - name: Build frontend
       run: npm run build
 
-    - name: List build folder
-      run: ls -al dist
-
-    - name: Clean target directory on EC2
+    - name: Clean remote folder & fix permissions
       uses: appleboy/ssh-action@v0.1.10
       with:
         host: ${{ secrets.EC2_HOST }}
-        username: ubuntu
+        username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
           sudo rm -rf /var/www/html/LMS_frontend/*
+          sudo chown -R ${{ secrets.EC2_USERNAME }}:www-data /var/www/html/LMS_frontend
+          sudo chmod -R 775 /var/www/html/LMS_frontend
 
-    - name: Copy build files to EC2
+    - name: Deploy to remote server
       uses: appleboy/scp-action@v0.1.7
       with:
         host: ${{ secrets.EC2_HOST }}
-        username: ubuntu
+        username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_SSH_KEY }}
-        source: dist/*
-        target: /var/www/html/LMS_frontend
-
-    - name: Set permissions on EC2
-      uses: appleboy/ssh-action@v0.1.10
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ubuntu
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          sudo chown -R www-data:www-data /var/www/html/LMS_frontend
-          sudo chmod -R 755 /var/www/html/LMS_frontend
+        port: 22
+        source: "dist/*"
+        target: "/var/www/html/LMS_frontend"
