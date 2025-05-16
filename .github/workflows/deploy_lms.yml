@@ -33,7 +33,7 @@ jobs:
         source: build/
         target: /var/www/html/LMS_frontend
 
-    - name: Set permissions on EC2
+    - name: Set permissions
       uses: appleboy/ssh-action@v0.1.10
       with:
         host: ${{ secrets.EC2_HOST }}
