@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CreateExam, GetAllExams, GetExamById, UpdateExamById, DeleteExamById, ToggleExamPublish, GetAllCourses } from '../../service/api';
 
 const AdminExam = () => {
@@ -29,6 +29,8 @@ const AdminExam = () => {
   // State for question form visibility and editing
   const [showQuestionForm, setShowQuestionForm] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
+  // Ref for the new exam form
+  const newExamFormRef = useRef(null);
 
   // Fetch exams and courses on component mount
   useEffect(() => {
@@ -64,7 +66,7 @@ const AdminExam = () => {
     const fetchCourses = async () => {
       try {
         const response = await GetAllCourses();
-        setCourses(response); // Assuming response is an array of courses with _id and title
+        setCourses(response);
       } catch (error) {
         console.error('Failed to fetch courses:', error);
         alert('Failed to load courses. Please try again.');
@@ -74,6 +76,13 @@ const AdminExam = () => {
     fetchExams();
     fetchCourses();
   }, []);
+
+  // Scroll to new exam form when addingExam is true
+  useEffect(() => {
+    if (addingExam && newExamFormRef.current) {
+      newExamFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [addingExam]);
 
   // Handle adding a new exam
   const handleAddExam = async (e) => {
@@ -556,7 +565,7 @@ const AdminExam = () => {
                   aria-label="Add new exam"
                 >
                   <svg
-                    className="w-5 h-5 inline-block mr-2"
+                    className="w-5 h-5 inline-block"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -572,7 +581,7 @@ const AdminExam = () => {
                 </button>
               </li>
               {addingExam && (
-                <li className="px-2 py-3 bg-green-50">
+                <li className="px-2 py-3 bg-green-50" ref={newExamFormRef}>
                   <form onSubmit={handleAddExam}>
                     <div className="space-y-2">
                       <input
@@ -726,15 +735,6 @@ const AdminExam = () => {
                       required
                     />
                   </div>
-                  {/* <div>
-                    <label className="block text-sm text-gray-500">Total Marks</label>
-                    <input
-                      type="number"
-                      className="w-full p-2 border border-gray-300 rounded text-sm bg-gray-100"
-                      value={selectedExam.questions.length}
-                      readOnly
-                    />
-                  </div> */}
                   <div>
                     <label className="block text-sm text-gray-500">Tags (comma-separated)</label>
                     <input
