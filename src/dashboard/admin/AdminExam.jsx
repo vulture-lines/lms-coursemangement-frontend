@@ -502,9 +502,9 @@ const AdminExam = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex relative h-full bg-gray-100">
       {/* Sidebar */}
-      <div className="w-72 bg-white border-r border-gray-200 overflow-y-auto">
+      <div className="w-72 h-screen sticky top-0 bg-white border-r border-gray-200 overflow-y-auto">
         <nav className="p-4">
           {/* Exam List */}
           <div className="mb-4">
@@ -668,7 +668,7 @@ const AdminExam = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 bg-white">
+      <div className="flex-1  bg-white">
         <div className="p-6">
           <div className="mb-6">
             <h1 className="text-xl font-semibold text-gray-900">

@@ -1,398 +1,383 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
-import { CreateCourseAchievement, GetAllCourseAchievements, UpdateCourseAchievement, GetAllUsers, GetAllCourses, UploadFile } from '../../service/api';
+import QRCode from "qrcode";
+import { Download, Eye } from "lucide-react";
 
-const AdminAchievements = () => {
+import {
+  CreateCourseAchievement,
+  GetAllCourseAchievements,
+  UpdateCourseAchievement,
+  DeleteCourseAchievement,
+  GetAllUsers,
+  GetAllCourses,
+} from '../../service/api';
+
+const AdminCourseAchievements = () => {
   const [achievements, setAchievements] = useState([]);
   const [users, setUsers] = useState([]);
   const [courses, setCourses] = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [currentAchievement, setCurrentAchievement] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [certificateLoading, setCertificateLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [certificatePreview, setCertificatePreview] = useState(null);
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm();
+  const [formMode, setFormMode] = useState('create');
+  const [editingId, setEditingId] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [previewData, setPreviewData] = useState(null);
+  const canvasRef = useRef(null);
 
-  // Fetch all achievements, users, and courses
-  const fetchData = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const achievementData = await GetAllCourseAchievements();
-      console.log('Fetched achievements:', achievementData);
-      setAchievements(achievementData);
-      const userData = await GetAllUsers();
-      console.log('Fetched users:', userData);
-      setUsers(userData);
-      const courseData = await GetAllCourses();
-      console.log('Fetched courses:', courseData);
-      setCourses(courseData);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm();
 
-  // Fetch data on mount
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  // Clean up certificate preview URL
-  useEffect(() => {
-    return () => {
-      if (certificatePreview) {
-        URL.revokeObjectURL(certificatePreview);
+  const fetchInitialData = async () => {
+      setIsLoading(true);
+      try {
+        const [achievementsData, usersData, coursesData] = await Promise.all([
+          GetAllCourseAchievements(),
+          GetAllUsers(),
+          GetAllCourses(),
+        ]);
+        setAchievements(achievementsData);
+        setUsers(usersData);
+        setCourses(coursesData);
+      } catch (err) {
+        setError(err.message || 'Failed to fetch data.');
+      } finally {
+        setIsLoading(false);
       }
     };
-  }, [certificatePreview]);
 
-  const handleCertificateUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  useEffect(() => {
+   
+    fetchInitialData();
+  }, []);
 
-    // Validate file type and size
-    if (!file.type.startsWith('image/')) {
-      setError('Please select a valid image file (e.g., JPG, PNG).');
-      return;
-    }
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      setError('File size exceeds 5MB limit.');
-      return;
-    }
+  
 
-    const previewUrl = URL.createObjectURL(file);
-    setCertificatePreview(previewUrl);
-    setCertificateLoading(true);
-    setError(null);
+  // useEffect(() => {
+  //   if (previewData && canvasRef.current) {
+  //     const canvas = canvasRef.current;
+  //     const ctx = canvas.getContext('2d');
+  //     ctx.clearRect(0, 0, canvas.width, canvas.height);
+  //     ctx.fillStyle = '#fef3c7';
+  //     ctx.fillRect(0, 0, canvas.width, canvas.height);
+  //     ctx.fillStyle = '#1f2937';
+  //     ctx.font = '20px Arial';
+  //     ctx.textAlign = 'center';
+  //     ctx.fillText('Certificate of Completion', canvas.width / 2, 60);
+  //     ctx.font = '16px Arial';
+  //     ctx.fillText(`Awarded to ${previewData.username}`, canvas.width / 2, 100);
+  //     ctx.fillText(`for completing ${previewData.courseTitle}`, canvas.width / 2, 130);
+  //     ctx.fillText(`Mentor: ${previewData.mentorName}`, canvas.width / 2, 170);
+  //     ctx.fillText(`Authorized by: ${previewData.authorityName}`, canvas.width / 2, 200);
+  //   }
+  // }, [previewData]);
+  
+  
+useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      console.log('Uploading file:', file.name, file.type, file.size);
-      const res = await UploadFile(formData);
-      console.log('UploadFile full response:', res);
-      const fileUrl = res?.data?.fileUrl || res?.data?.url || res?.data?.imageUrl;
-      if (fileUrl && typeof fileUrl === 'string' && fileUrl.startsWith('http')) {
-        setValue('certificateUrl', fileUrl);
-        console.log('Certificate URL set:', fileUrl);
-      } else {
-        console.error('Invalid fileUrl:', fileUrl);
-        throw new Error('Invalid response from server: fileUrl missing or invalid');
+    const ctx = canvas.getContext("2d");
+    const templateImage = new Image();
+    templateImage.src = "/assets/LMS Certificate.png"; // Make sure image is in public/assets
+    // templateImage.src = "/Template_certificat.png"; // Make sure image is in public/assets
+    // templateImage.src = "../../assets/Template_certificate.jpg"; // Make sure image is in public/assets
+
+    // QR code content
+    const qrContent = `
+    Certificate ID: ${previewData.certificateId}
+    Name: ${previewData.username}
+    Course: ${previewData.courseTitle}
+    Date: ${new Date(previewData.completedAt).toLocaleDateString()}
+    Mentor: ${previewData.mentorName || "-"}
+    Authority: ${previewData.authorityName || "-"}
+    `.trim();
+
+    const certificateDate = new Date(previewData.completedAt).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+
+    templateImage.onload = async () => {
+      canvas.width = templateImage.width;
+      canvas.height = templateImage.height;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(templateImage, 0, 0);
+
+      ctx.fillStyle = "#333";
+      ctx.textAlign = "center";
+
+      ctx.font = "bold 28px Poppins, sans-serif";
+      // ctx.fillText(courseTitle, canvas.width / 2, 230);
+
+      ctx.fillStyle = "#a37531";
+      ctx.font = "bold 120px Allura, cursive";
+      ctx.fillText(previewData.username, canvas.width / 2, 680);
+
+      ctx.fillStyle = "#000";
+      ctx.font = "bold 40px Poppins, sans-serif";
+      ctx.fillText(
+        `For Participation in ${previewData.courseTitle},  `,
+        canvas.width / 2,
+        780
+      );
+
+      ctx.font = "bold 40px Poppins, sans-serif";
+      ctx.fillText(`on ${certificateDate}`, canvas.width / 2, 840);
+
+      ctx.font = "Medium 40px Poppins, sans-serif";
+      ctx.fillText(
+        // previewData.mentorName || "-",
+        "Cahaya Dewi",
+        canvas.width / 2 - 550,
+        canvas.height - 280
+      );
+      ctx.fillText(
+        // previewData.authorityName || "-",
+        "R K Prasad",
+        canvas.width / 2 + 550,
+        canvas.height - 280
+      );
+      ctx.fillStyle = "#fff";
+      ctx.font = "16px Poppins, sans-serif";
+      ctx.fillText(
+        `Certificate Id: ${previewData.certificateId}`,
+        canvas.width / 2 + 650,
+        canvas.height - 40
+      );
+
+      try {
+        const qrDataURL = await QRCode.toDataURL(qrContent);
+        const qrImage = new Image();
+        qrImage.src = qrDataURL;
+
+        qrImage.onload = () => {
+          const qrSize = 100;
+          ctx.drawImage(
+            qrImage,
+            canvas.width - qrSize - 40,
+            canvas.height - qrSize - 40,
+            qrSize,
+            qrSize
+          );
+          // setTemplateLoaded();
+        };
+      } catch (err) {
+        console.error("QR code generation failed:", err);
+        // setTemplateLoaded(true);
       }
-    } catch (error) {
-      console.error('Certificate upload error:', error.response?.data || error.message);
-      setError(error.response?.data?.message || error.message || 'Failed to upload certificate. Please try again.');
-      setCertificatePreview(null);
-      setValue('certificateUrl', '');
-    } finally {
-      setCertificateLoading(false);
-    }
-  };
+    };
+
+    templateImage.onerror = () => {
+      console.error("Failed to load certificate template.");
+      setTemplateLoaded(false);
+    };
+  }, [previewData]);
 
   const onSubmit = async (data) => {
     setIsLoading(true);
-    setError(null);
-    console.log('Form data submitted:', data);
-    
-    // Validate userId and courseId
-    const userExists = users.find((user) => user._id === data.userId);
-    const courseExists = courses.find((course) => course._id === data.courseId);
-    if (!userExists) {
-      setError('Selected user does not exist. Please choose a valid user.');
-      setIsLoading(false);
-      return;
-    }
-    if (!courseExists) {
-      setError('Selected course does not exist. Please choose a valid course.');
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      if (isEditing && currentAchievement) {
-        const updateData = {
-          user: data.userId, // Primary field
-          userId: data.userId, // Fallback for backend
+      if (formMode === 'edit' && editingId) {
+        await UpdateCourseAchievement(editingId, {
+          userId: data.userId,
           courseId: data.courseId,
-          certificateUrl: data.certificateUrl,
-        };
-        console.log('Sending update data:', updateData);
-        const response = await UpdateCourseAchievement(currentAchievement._id, updateData);
-        console.log('Update response:', response);
+          mentorName: data.mentorName,
+          authorityName: data.authorityName,
+        });
       } else {
         await CreateCourseAchievement({
           userId: data.userId,
           courseId: data.courseId,
-          certificateUrl: data.certificateUrl,
+          mentorName: data.mentorName,
+          authorityName: data.authorityName,
         });
       }
-      await fetchData();
       reset();
+      setFormMode('create');
+      setEditingId(null);
       setShowForm(false);
-      setIsEditing(false);
-      setCurrentAchievement(null);
-      setCertificatePreview(null);
+      const updated = await GetAllCourseAchievements();
+      setAchievements(updated);
     } catch (err) {
-      console.error('Submit error:', err.message);
-      setError(err.message || 'Failed to update achievement. User or course may not exist.');
+      setError(err.message || 'Submission failed.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleEdit = (achievement) => {
-    console.log('Editing achievement:', achievement);
-    setCurrentAchievement(achievement);
-    setIsEditing(true);
-    setShowForm(true);
-    setCertificatePreview(achievement.certificateUrl || null);
+  const startEdit = (achievement) => {
     reset({
-      userId: achievement.user || '',
-      courseId: achievement.courseId || '',
-      certificateUrl: achievement.certificateUrl || '',
+      userId: achievement.user,
+      courseId: achievement.courseId,
+      mentorName: achievement.mentorName,
+      authorityName: achievement.authorityName,
     });
+    setFormMode('edit');
+    setEditingId(achievement._id);
+    setShowForm(true);
   };
 
-  const handleDownload = (achievement) => {
-    if (achievement.certificateUrl) {
-      const link = document.createElement('a');
-      link.href = achievement.certificateUrl;
-      link.download = `${(achievement.courseTitle || 'certificate').replace(/\s+/g, '_')}_certificate.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  };
-
-  const handleCancel = () => {
+  const deleteCertificate = async(a)=> {
+    const res = await DeleteCourseAchievement(a._id)
+    fetchInitialData()
+    console.log(res.data);
+    
+  }
+  
+  const cancelForm = () => {
     reset();
-    setShowForm(false);
-    setIsEditing(false);
-    setCurrentAchievement(null);
+    setFormMode('create');
+    setEditingId(null);
     setError(null);
-    setCertificatePreview(null);
+    setShowForm(false);
   };
 
-  // Watch form values for debugging
-  const watchedUserId = watch('userId');
-  const watchedCourseId = watch('courseId');
-  useEffect(() => {
-    console.log('Selected userId:', watchedUserId);
-    console.log('Selected courseId:', watchedCourseId);
-  }, [watchedUserId, watchedCourseId]);
+  const showPreview = (achievement) => {
+    setPreviewData(achievement);
+  };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-800">Manage Course Certificates</h1>
-        {!showForm && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-            disabled={isLoading}
-          >
-            Create Course Certificate
-          </button>
-        )}
-      </div>
+    <div className="p-6 max-w-6xl mx-auto">
+      <h2 className="text-2xl font-semibold mb-4">Course Certificate Management</h2>
+      {error && <div className="text-red-500 mb-4">{error}</div>}
 
-      {isLoading && (
-        <div className="text-center text-gray-500">Loading...</div>
-      )}
-
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-8">
-          {error}
-        </div>
-      )}
+      <button
+        onClick={() => setShowForm(!showForm)}
+        className="mb-6 bg-blue-600 text-white px-4 py-2 rounded"
+      >
+        {showForm ? 'Hide Form' : 'Create Achievement'}
+      </button>
 
       {showForm && (
-        <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-          <h2 className="text-xl font-semibold mb-4">
-            {isEditing ? 'Edit Course Certificate' : 'Create Course Certificate'}
-          </h2>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mb-8 bg-gray-50 p-4 rounded-lg shadow">
+          <div>
+            <label className="block mb-1">User</label>
+            <select {...register('userId', { required: true })} className="w-full border px-3 py-2 rounded">
+              <option value="">Select user</option>
+              {users.map((u) => (
+                <option key={u._id} value={u._id}>{u.username}</option>
+              ))}
+            </select>
+            {errors.userId && <p className="text-red-500 text-sm">User is required</p>}
+          </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div>
-              <label htmlFor="userId" className="block text-sm font-medium text-gray-700 mb-1">
-                User *
-              </label>
-              <select
-                id="userId"
-                {...register('userId', { required: 'User is required' })}
-                className={`w-full px-3 py-2 border rounded-md border-gray-300 ${errors.userId ? 'border-red-500' : ''}`}
-                disabled={isLoading}
-              >
-                <option value="">Select User</option>
-                {users.map((user) => (
-                  <option key={user._id} value={user._id}>
-                    {user.username || 'Unknown'}
-                  </option>
-                ))}
-              </select>
-              {errors.userId && <p className="text-red-500 text-sm mt-1">{errors.userId.message}</p>}
-            </div>
+          <div>
+            <label className="block mb-1">Course</label>
+            <select {...register('courseId', { required: true })} className="w-full border px-3 py-2 rounded">
+              <option value="">Select course</option>
+              {courses.map((c) => (
+                <option key={c._id} value={c._id}>{c.title}</option>
+              ))}
+            </select>
+            {errors.courseId && <p className="text-red-500 text-sm">Course is required</p>}
+          </div>
 
-            <div>
-              <label htmlFor="courseId" className="block text-sm font-medium text-gray-700 mb-1">
-                Course *
-              </label>
-              <select
-                id="courseId"
-                {...register('courseId', { required: 'Course is required' })}
-                className={`w-full px-3 py-2 border rounded-md border-gray-300 ${errors.courseId ? 'border-red-500' : ''}`}
-                disabled={isLoading}
-              >
-                <option value="">Select Course</option>
-                {courses.map((course) => (
-                  <option key={course._id} value={course._id}>
-                    {course.title || 'Unknown Course'}
-                  </option>
-                ))}
-              </select>
-              {errors.courseId && <p className="text-red-500 text-sm mt-1">{errors.courseId.message}</p>}
-            </div>
+          <div>
+            <label className="block mb-1">Mentor Name</label>
+            <input type="text" {...register('mentorName', { required: true })} className="w-full border px-3 py-2 rounded" />
+            {errors.mentorName && <p className="text-red-500 text-sm">Mentor name is required</p>}
+          </div>
 
-            <div>
-              <label htmlFor="certificateFile" className="block text-sm font-medium text-gray-700 mb-1">
-                Certificate Image *
-              </label>
-              <input
-                id="certificateFile"
-                type="file"
-                accept="image/*"
-                onChange={handleCertificateUpload}
-                className={`w-full px-3 py-2 border rounded-md border-gray-300 file:bg-green-600 file:text-white file:border-none file:px-4 file:py-2 file:rounded ${errors.certificateUrl ? 'border-red-500' : ''}`}
-                disabled={isLoading || certificateLoading}
-                aria-label="Certificate Image"
-                aria-describedby={errors.certificateUrl ? 'certificate-error' : undefined}
-              />
-              <input
-                type="hidden"
-                {...register('certificateUrl', { required: 'Certificate image is required' })}
-              />
-              {errors.certificateUrl && (
-                <p id="certificate-error" className="text-red-500 text-sm mt-1">
-                  {errors.certificateUrl.message}
-                </p>
-              )}
-              {certificateLoading && (
-                <div className="mt-2 flex items-center">
-                  <svg
-                    className="animate-spin h-5 w-5 text-green-600 mr-2"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Uploading...
-                </div>
-              )}
-              {certificatePreview && (
-                <div className="mt-4">
-                  <p className="mb-1 text-sm text-gray-600">Certificate Preview</p>
-                  <div className="relative w-40 h-40 rounded-md overflow-hidden">
-                    <img
-                      src={certificatePreview}
-                      alt="Certificate Preview"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
+          <div>
+            <label className="block mb-1">Authority Name</label>
+            <input type="text" {...register('authorityName', { required: true })} className="w-full border px-3 py-2 rounded" />
+            {errors.authorityName && <p className="text-red-500 text-sm">Authority name is required</p>}
+          </div>
 
-            <div className="flex space-x-3 pt-2">
-              <button
-                type="submit"
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-                disabled={isLoading || certificateLoading}
-              >
-                {isEditing ? 'Update' : 'Create'} Certificate
-              </button>
-
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                disabled={isLoading || certificateLoading}
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
+          <div className="flex space-x-3">
+            <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded">
+              {formMode === 'edit' ? 'Update' : 'Create'} Achievement
+            </button>
+            <button type="button" onClick={cancelForm} className="bg-gray-300 px-4 py-2 rounded">
+              Cancel
+            </button>
+          </div>
+        </form>
       )}
 
-      {achievements.length === 0 && !isLoading ? (
-        <div className="bg-white p-6 rounded-lg shadow-md text-center text-gray-500">
-          No course certificates yet. Click "Create Course Certificate" to add one.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {achievements.map((achievement) => (
-            <div key={achievement._id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-              {achievement.certificateUrl ? (
-                <img
-                  src={achievement.certificateUrl}
-                  alt={`${achievement.courseTitle || 'Certificate'}`}
-                  className="w-full h-48 object-cover"
-                />
-              ) : (
-                <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-500">
-                  No Certificate Image
-                </div>
-              )}
-              <div className="p-5">
-                <h3 className="text-lg font-semibold">{achievement.courseTitle || 'Unknown Course'}</h3>
-                <p className="text-gray-600">Awarded to: {achievement.username || 'Unknown'}</p>
-                <div className="mt-4 flex justify-end space-x-2">
-                  <button
-                    onClick={() => handleEdit(achievement)}
-                    className="p-2 text-gray-500 hover:text-green-600 rounded-full hover:bg-green-50 transition-colors duration-200"
-                    title="Edit"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15.828l-5.657-5.657a2 2 0 112.828-2.828l2.829 2.829" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => handleDownload(achievement)}
-                    className="p-2 text-gray-500 saisir votre réponse
-                    hover:text-green-600 rounded-full hover:bg-green-50 transition-colors duration-200"
-                    title="Download"
-                    disabled={!achievement.certificateUrl}
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                  </button>
-                </div>
+      <div className="mt-8">
+        <h3 className="text-lg font-semibold mb-4">Existing Achievements</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {achievements.map((a) => (
+            <div
+              key={a._id}
+              className="bg-white p-4 shadow-md rounded-xl flex flex-col justify-between"
+            >
+              <div>
+                <h4 className="text-lg font-semibold">{a.courseTitle}</h4>
+                <p className="text-sm text-gray-700">User: {a.username}</p>
+                <p className="text-sm text-gray-500">Mentor: {a.mentorName}</p>
+                <p className="text-sm text-gray-500">Authority: {a.authorityName}</p>
+              </div>
+              <div className="flex justify-end space-x-3 mt-4">
+                <button
+                  onClick={() => startEdit(a)}
+                  className="text-blue-600 hover:underline"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => showPreview(a)}
+                  className="text-green-600 hover:underline"
+                >
+                  Preview
+                </button>
+                 <button
+                  onClick={() =>deleteCertificate(a)}
+                  className="text-red-600 hover:underline"
+                >
+                  Delete
+                </button>
               </div>
             </div>
           ))}
         </div>
-      )}
+      </div>
+
+     {previewData && (
+  <div className="fixed inset-0 bg-black/40 bg-opacity-60 z-50 flex items-center justify-center transition-opacity duration-300">
+    <div className="relative bg-white rounded-2xl shadow-2xl w-[90%] max-w-3xl p-6 animate-fadeIn">
+      <button
+        onClick={() => setPreviewData(null)}
+        className="absolute top-3 right-3 text-gray-500 hover:text-red-500 text-xl"
+        aria-label="Close"
+      >
+        &times;
+      </button>
+      <h3 className="text-2xl font-semibold text-center mb-4 text-gray-800">
+        🎓 Certificate Preview
+      </h3>
+      <div className="flex justify-center">
+        <canvas
+        ref={canvasRef}
+        className="shadow-lg border rounded w-full max-w-[500px] mx-auto relative overflow-hidden max-h-[300px] "
+      />
+      </div>
+      <div className="mt-6 flex justify-center">
+        <button
+          onClick={() => {
+            const canvas = canvasRef.current;
+            const link = document.createElement('a');
+            link.download = 'certificate.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+          }}
+          className="bg-blue-600 text-white px-6 py-2 rounded-lg shadow hover:bg-blue-700 transition"
+        >
+          Download as PNG
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 };
 
-export default AdminAchievements;
+export default AdminCourseAchievements;
