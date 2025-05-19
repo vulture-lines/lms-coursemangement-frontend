@@ -117,7 +117,7 @@ const Exam = () => {
 
   // Handle Attempt Now button click
   const handleAttemptNow = () => {
-    if (selectedExam && !selectedExam.attempted) {
+    if (selectedExam && !selectedExam.attempted && examResults?.attempts?.length < 5) {
       navigate(`/student/examquestion?examid=${selectedExam.id}`);
     }
   };
@@ -164,6 +164,9 @@ const Exam = () => {
 
   // Get unique courseIds
   const uniqueCourseIds = [...new Set(exams.map((exam) => exam.courseId))];
+
+  // Check if attempt limit is reached
+  const isAttemptLimitReached = examResults?.attempts?.length >= 5;
 
   return (
     <div className="flex min-h-screen bg-gray-100 pt-16">
@@ -334,21 +337,29 @@ const Exam = () => {
             <div className="self-start">
               <button
                 className={`bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-6 rounded text-sm sm:text-base ${
-                  !selectedExam || selectedExam.attempted || !selectedExam.isPublished
+                  !selectedExam || selectedExam.attempted || !selectedExam.isPublished || isAttemptLimitReached
                     ? 'opacity-50 cursor-not-allowed'
                     : ''
                 }`}
                 onClick={handleAttemptNow}
-                disabled={!selectedExam || selectedExam.attempted || !selectedExam.isPublished}
+                disabled={!selectedExam || selectedExam.attempted || !selectedExam.isPublished || isAttemptLimitReached}
                 aria-label={
-                  selectedExam?.attempted
+                  isAttemptLimitReached
+                    ? 'Maximum 5 attempts reached'
+                    : selectedExam?.attempted
                     ? 'Exam already attempted'
                     : !selectedExam?.isPublished
                     ? 'Exam not published'
                     : 'Attempt exam now'
                 }
               >
-                {selectedExam?.attempted ? 'Attempted' : !selectedExam?.isPublished ? 'Not Published' : 'Attempt Now'}
+                {isAttemptLimitReached
+                  ? 'Attempt Limit Reached'
+                  : selectedExam?.attempted
+                  ? 'Attempted'
+                  : !selectedExam?.isPublished
+                  ? 'Not Published'
+                  : 'Attempt Now'}
               </button>
             </div>
 
@@ -374,12 +385,12 @@ const Exam = () => {
                   <table className="min-w-full bg-white border border-gray-200">
                     <thead>
                       <tr className="bg-gray-50">
-                        <th className="py-2 px-4 text-left text-sm font-medium text-gray-500">Attempt</th>
-                        <th className="py-2 px-4 text-left text-sm font-medium text-gray-500">Score</th>
-                        <th className="py-2 px-4 text-left text-sm font-medium text-gray-500">Percentage</th>
-                        <th className="py-2 px-4 text-left text-sm font-medium text-gray-500">Duration (min)</th>
-                        <th className="py-2 px-4 text-left text-sm font-medium text-gray-500">Correct Answers</th>
-                        <th className="py-2 px-4 text-left text-sm font-medium text-gray-500">Submitted On</th>
+                        <th className="py-2 px-4 text-left text-sm font-medium text-gray-500" scope="col">Attempt</th>
+                        <th className="py-2 px-4 text-left text-sm font-medium text-gray-500" scope="col">Score</th>
+                        <th className="py-2 px-4 text-left text-sm font-medium text-gray-500" scope="col">Percentage</th>
+                        <th className="py-2 px-4 text-left text-sm font-medium text-gray-500" scope="col">Duration (min)</th>
+                        <th className="py-2 px-4 text-left text-sm font-medium text-gray-500" scope="col">Correct Answers</th>
+                        <th className="py-2 px-4 text-left text-sm font-medium text-gray-500" scope="col">Submitted On</th>
                       </tr>
                     </thead>
                     <tbody>

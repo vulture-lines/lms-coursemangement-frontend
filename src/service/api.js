@@ -956,6 +956,14 @@ export const UpdateCourseAchievement = async (achievementId, achievementData) =>
   }
 };
 
+export const DeleteCourseAchievement = async (achievementId) => {
+  try {
+    const res = await axios.delete(`${baseUrl}/api/courseAchievements/${achievementId}`);
+    return res.data;
+  } catch (error) {
+    throw error.response?.data?.message || error.message || "Failed to update course achievement";
+  }
+};
 // ================================= Course Achievement Section ========================
 
 
