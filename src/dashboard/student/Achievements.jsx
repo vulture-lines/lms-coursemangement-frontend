@@ -72,14 +72,14 @@ const CertificateRenderer = ({ achievement }) => {
 
       ctx.font = "Medium 40px Poppins, sans-serif";
       ctx.fillText(
-        // mentorName || "-",
-        "Cahaya Dewi",
+        mentorName || "-",
+        // "Cahaya Dewi",
         canvas.width / 2 - 550,
         canvas.height - 280
       );
       ctx.fillText(
-        // authorityName || "-",
-        "R K Prasad",
+        authorityName || "-",
+        // "R K Prasad",
         canvas.width / 2 + 550,
         canvas.height - 280
       );
