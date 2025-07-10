@@ -1,5 +1,5 @@
 import axios from "axios";
-
+// const baseUrl = "https://lawcoach.in/api";
 const baseUrl = "https://lawcoach.in/api";
 export const baseUrl1 = "https://lawcoach.in/api";
 const Token = JSON.parse(localStorage.getItem("loginData"));
