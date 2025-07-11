@@ -82,7 +82,7 @@ export const AuthLogin = async (data) => {
 // Google Login
 export const AuthGoogleLogin = async ({ code }) => {
   try {
-    const res = await api.post("/api/auth/google", { code });
+    const res = await api.post("/auth/google", { code });
     localStorage.setItem("loginData", JSON.stringify(res.data));
     return res.data;
   } catch (error) {
