@@ -116,11 +116,21 @@ const Exam = () => {
   };
 
   // Handle Attempt Now button click
-  const handleAttemptNow = () => {
-    if (selectedExam && !selectedExam.attempted && examResults?.attempts?.length < 5) {
-      navigate(`/student/examquestion?examid=${selectedExam.id}`);
-    }
-  };
+  // const handleAttemptNow = () => {
+  //   if (selectedExam && !selectedExam.attempted && examResults?.attempts?.length < 5) {
+  //     navigate(`/student/examquestion?examid=${selectedExam.id}`);
+  //   }
+  // };
+
+ const handleAttemptNow = () => {
+  const attempts = examResults?.attempts || [];
+
+  if (selectedExam && selectedExam.isPublished && attempts.length < 5) {
+    navigate(`/student/examquestion?examid=${selectedExam.id}`);
+  }
+};
+
+
 
   // Format date
   const formatDate = (dateString) => {
@@ -335,7 +345,7 @@ const Exam = () => {
             </div>
 
             <div className="self-start">
-              <button
+              {/* <button
                 className={`bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-6 rounded text-sm sm:text-base ${
                   !selectedExam || selectedExam.attempted || !selectedExam.isPublished || isAttemptLimitReached
                     ? 'opacity-50 cursor-not-allowed'
@@ -360,7 +370,25 @@ const Exam = () => {
                   : !selectedExam?.isPublished
                   ? 'Not Published'
                   : 'Attempt Now'}
-              </button>
+              </button> */}
+              <button
+  className={`bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-6 rounded text-sm sm:text-base ${
+    !selectedExam || !selectedExam.isPublished || isAttemptLimitReached
+      ? 'opacity-50 cursor-not-allowed'
+      : ''
+  }`}
+  onClick={handleAttemptNow}
+  disabled={
+    !selectedExam || !selectedExam.isPublished || isAttemptLimitReached
+  }
+>
+  {isAttemptLimitReached
+    ? 'Attempt Limit Reached'
+    : !selectedExam?.isPublished
+    ? 'Not Published'
+    : 'Attempt Now'}
+</button>
+
             </div>
 
             {/* Past Attempts Section */}
