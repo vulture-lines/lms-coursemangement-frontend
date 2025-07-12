@@ -1,7 +1,7 @@
 import axios from "axios";
 // const baseUrl = "https://lawcoach.in/api";
-const baseUrl = "http://43.205.228.201.nip.io/api";
-export const baseUrl1 = "http://43.205.228.201.nip.io/api";
+const baseUrl = "https://lawcoach.in/api";
+export const baseUrl1 = "https://lawcoach.in/api";
 const Token = JSON.parse(localStorage.getItem("loginData"));
 
 axios.defaults.headers.common["Authorization"] = `Bearer ${Token?.token}`;
