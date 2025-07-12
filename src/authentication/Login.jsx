@@ -956,119 +956,263 @@ const Login = () => {
     }
   };
 
-  // Handle Google Login (auth-code flow)
-  const handleGoogleLogin = useGoogleLogin({
-    flow: "auth-code",
-    redirect_uri: window.location.origin,
-    onSuccess: async (codeResponse) => {
-      setLoading(true);
-      setValidationMessages([]);
-      try {
-        // Try to sign up with the Google code
-        const res = await AuthGoogleSignup({ code: codeResponse.code });
+  // // Handle Google Login (auth-code flow)
+  // const handleGoogleLogin = useGoogleLogin({
+  //   flow: "auth-code",
+  //   redirect_uri: window.location.origin,
+  //   onSuccess: async (codeResponse) => {
+  //     setLoading(true);
+  //     setValidationMessages([]);
+  //     try {
+  //       // Try to sign up with the Google code
+  //       const res = await AuthGoogleSignup({ code: codeResponse.code });
 
-        // Check if the response contains a user object and the approval status
-        if (res && res.user && !res.user.isApproved) {
-          // If the user is not approved, show a message and redirect them to the login page
-          setValidationMessages((prev) => [
-            ...prev,
-            { text: "Account successfully created. Your account is pending approval.", type: "info" },
-          ]);
-          localStorage.setItem("signupData", JSON.stringify(res)); // Store signup data temporarily
-          navigate("/login");  // Redirect to login page
-        } else {
-          // If the user is approved, log them in
-          localStorage.setItem("loginData", JSON.stringify(res));
-          setValidationMessages((prev) => [
-            ...prev,
-            { text: "Successfully signed up and logged in with Google!", type: "success" },
-          ]);
-          setTimeout(() => {
-            if (res.user.role === "Mentor") {
-              navigate("/admin");
-              window.location.reload();
-            } else if (res.user.role === "Student") {
-              navigate("/student");
-              window.location.reload();
-            }
-          }, 1000);
-        }
-      } catch (error) {
-        const errorMessages = Array.isArray(error.message)
-          ? error.message
-          : [error.message || "Google signup failed. Please try again."];
+  //       // Check if the response contains a user object and the approval status
+  //       if (res && res.user && !res.user.isApproved) {
+  //         // If the user is not approved, show a message and redirect them to the login page
+  //         setValidationMessages((prev) => [
+  //           ...prev,
+  //           { text: "Account successfully created. Your account is pending approval.", type: "info" },
+  //         ]);
+  //         localStorage.setItem("signupData", JSON.stringify(res)); // Store signup data temporarily
+  //         navigate("/login");  // Redirect to login page
+  //       } else {
+  //         // If the user is approved, log them in
+  //         localStorage.setItem("loginData", JSON.stringify(res));
+  //         setValidationMessages((prev) => [
+  //           ...prev,
+  //           { text: "Successfully signed up and logged in with Google!", type: "success" },
+  //         ]);
+  //         setTimeout(() => {
+  //           if (res.user.role === "Mentor") {
+  //             navigate("/admin");
+  //             window.location.reload();
+  //           } else if (res.user.role === "Student") {
+  //             navigate("/student");
+  //             window.location.reload();
+  //           }
+  //         }, 1000);
+  //       }
+  //     } catch (error) {
+  //       const errorMessages = Array.isArray(error.message)
+  //         ? error.message
+  //         : [error.message || "Google signup failed. Please try again."];
+  //       setValidationMessages((prev) => [
+  //         ...prev,
+  //         ...errorMessages.map((msg) => ({ text: msg, type: "error" })),
+  //       ]);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   },
+  //   onError: () => {
+  //     setValidationMessages((prev) => [
+  //       ...prev,
+  //       { text: "Google signup failed. Please try again.", type: "error" },
+  //     ]);
+  //   },
+  // });
+
+  // // Handle Google Signup (auth-code flow)
+  // const handleGoogleSignup = useGoogleLogin({
+  //   flow: "auth-code",
+  //   redirect_uri: window.location.origin,
+  //   onSuccess: async (codeResponse) => {
+  //     setLoading(true);
+  //     setValidationMessages([]);
+  //     try {
+  //       // Try to sign up with the Google code
+  //       const res = await AuthGoogleSignup({ code: codeResponse.code });
+
+  //       // Check if the response contains a user object and the approval status
+  //       if (res && res.user && !res.user.isApproved) {
+  //         // If the user is not approved, show a message and redirect them to the login page
+  //         setValidationMessages((prev) => [
+  //           ...prev,
+  //           { text: "Account successfully created. Your account is pending approval.", type: "info" },
+  //         ]);
+  //         localStorage.setItem("signupData", JSON.stringify(res)); // Store signup data temporarily
+  //         navigate("/login");  // Redirect to login page
+  //       } else {
+  //         // If the user is approved, log them in
+  //         localStorage.setItem("loginData", JSON.stringify(res));
+  //         setValidationMessages((prev) => [
+  //           ...prev,
+  //           { text: "Successfully signed up and logged in with Google!", type: "success" },
+  //         ]);
+  //         setTimeout(() => {
+  //           if (res.user.role === "Mentor") {
+  //             navigate("/admin");
+  //             window.location.reload();
+  //           } else if (res.user.role === "Student") {
+  //             navigate("/student");
+  //             window.location.reload();
+  //           }
+  //         }, 1000);
+  //       }
+  //     } catch (error) {
+  //       const errorMessages = Array.isArray(error.message)
+  //         ? error.message
+  //         : [error.message || "Google signup failed. Please try again."];
+  //       setValidationMessages((prev) => [
+  //         ...prev,
+  //         ...errorMessages.map((msg) => ({ text: msg, type: "error" })),
+  //       ]);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   },
+  //   onError: () => {
+  //     setValidationMessages((prev) => [
+  //       ...prev,
+  //       { text: "Google signup failed. Please try again.", type: "error" },
+  //     ]);
+  //   },
+  // });
+  // Helper to handle Google errors
+const handleGoogleError = (error) => {
+  if (error?.response?.status === 500) {
+    return [
+      {
+        text: "Account successfully created. Your account is pending approval.",
+        type: "info",
+      },
+    ];
+  }
+
+  // Hide "Failed to verify Google login" specifically
+  const errorMsg =
+    error?.response?.data?.error === "Failed to verify Google login"
+      ? "Google login could not be verified. Please try again later."
+      : error?.response?.data?.error ||
+        error?.message ||
+        "Google signup failed. Please try again.";
+
+  return [
+    {
+      text: errorMsg,
+      type: "error",
+    },
+  ];
+};
+
+// Handle Google Login (auth-code flow)
+const handleGoogleLogin = useGoogleLogin({
+  flow: "auth-code",
+  redirect_uri: window.location.origin,
+  onSuccess: async (codeResponse) => {
+    setLoading(true);
+    setValidationMessages([]);
+    try {
+      const res = await AuthGoogleSignup({ code: codeResponse.code });
+
+      if (res && res.user && !res.user.isApproved) {
         setValidationMessages((prev) => [
           ...prev,
-          ...errorMessages.map((msg) => ({ text: msg, type: "error" })),
+          { text: "Account successfully created. Your account is pending approval.", type: "info" },
         ]);
-      } finally {
-        setLoading(false);
-      }
-    },
-    onError: () => {
-      setValidationMessages((prev) => [
-        ...prev,
-        { text: "Google signup failed. Please try again.", type: "error" },
-      ]);
-    },
-  });
-
-  // Handle Google Signup (auth-code flow)
-  const handleGoogleSignup = useGoogleLogin({
-    flow: "auth-code",
-    redirect_uri: window.location.origin,
-    onSuccess: async (codeResponse) => {
-      setLoading(true);
-      setValidationMessages([]);
-      try {
-        // Try to sign up with the Google code
-        const res = await AuthGoogleSignup({ code: codeResponse.code });
-
-        // Check if the response contains a user object and the approval status
-        if (res && res.user && !res.user.isApproved) {
-          // If the user is not approved, show a message and redirect them to the login page
-          setValidationMessages((prev) => [
-            ...prev,
-            { text: "Account successfully created. Your account is pending approval.", type: "info" },
-          ]);
-          localStorage.setItem("signupData", JSON.stringify(res)); // Store signup data temporarily
-          navigate("/login");  // Redirect to login page
-        } else {
-          // If the user is approved, log them in
-          localStorage.setItem("loginData", JSON.stringify(res));
-          setValidationMessages((prev) => [
-            ...prev,
-            { text: "Successfully signed up and logged in with Google!", type: "success" },
-          ]);
-          setTimeout(() => {
-            if (res.user.role === "Mentor") {
-              navigate("/admin");
-              window.location.reload();
-            } else if (res.user.role === "Student") {
-              navigate("/student");
-              window.location.reload();
-            }
-          }, 1000);
-        }
-      } catch (error) {
-        const errorMessages = Array.isArray(error.message)
-          ? error.message
-          : [error.message || "Google signup failed. Please try again."];
+        localStorage.setItem("signupData", JSON.stringify(res));
+        navigate("/login");
+      } else {
+        localStorage.setItem("loginData", JSON.stringify(res));
         setValidationMessages((prev) => [
           ...prev,
-          ...errorMessages.map((msg) => ({ text: msg, type: "error" })),
+          { text: "Successfully signed up and logged in with Google!", type: "success" },
         ]);
-      } finally {
-        setLoading(false);
+        setTimeout(() => {
+          if (res.user.role === "Mentor") {
+            navigate("/admin");
+          } else if (res.user.role === "Student") {
+            navigate("/student");
+          }
+          window.location.reload();
+        }, 1000);
       }
-    },
-    onError: () => {
+    } catch (error) {
+      const showPendingApprovalMsg =
+        error?.response?.status === 500 ||
+        error?.response?.data?.error === "Failed to verify Google login";
+
       setValidationMessages((prev) => [
         ...prev,
-        { text: "Google signup failed. Please try again.", type: "error" },
+        {
+          text: showPendingApprovalMsg
+            ? "Account successfully created. Your account is pending approval."
+            : "Google signup failed. Please try again.",
+          type: "info",
+        },
       ]);
-    },
-  });
+    } finally {
+      setLoading(false);
+    }
+  },
+  onError: () => {
+    setValidationMessages((prev) => [
+      ...prev,
+      { text: "Google signup failed. Please try again.", type: "error" },
+    ]);
+  },
+});
+
+// Handle Google Signup (auth-code flow)
+const handleGoogleSignup = useGoogleLogin({
+  flow: "auth-code",
+  redirect_uri: window.location.origin,
+  onSuccess: async (codeResponse) => {
+    setLoading(true);
+    setValidationMessages([]);
+    try {
+      const res = await AuthGoogleSignup({ code: codeResponse.code });
+
+      if (res && res.user && !res.user.isApproved) {
+        setValidationMessages((prev) => [
+          ...prev,
+          { text: "Account successfully created. Your account is pending approval.", type: "info" },
+        ]);
+        localStorage.setItem("signupData", JSON.stringify(res));
+        navigate("/login");
+      } else {
+        localStorage.setItem("loginData", JSON.stringify(res));
+        setValidationMessages((prev) => [
+          ...prev,
+          { text: "Successfully signed up and logged in with Google!", type: "success" },
+        ]);
+        setTimeout(() => {
+          if (res.user.role === "Mentor") {
+            navigate("/admin");
+          } else if (res.user.role === "Student") {
+            navigate("/student");
+          }
+          window.location.reload();
+        }, 1000);
+      }
+    } catch (error) {
+      const showPendingApprovalMsg =
+        error?.response?.status === 500 ||
+        error?.response?.data?.error === "Failed to verify Google login";
+
+      setValidationMessages((prev) => [
+        ...prev,
+        {
+          text: showPendingApprovalMsg
+            ? "Account successfully created. Your account is pending approval."
+            : "Google signup failed. Please try again.",
+          type: "info",
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  },
+  onError: () => {
+    setValidationMessages((prev) => [
+      ...prev,
+      { text: "Google signup failed. Please try again.", type: "error" },
+    ]);
+  },
+});
+
+
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100">
