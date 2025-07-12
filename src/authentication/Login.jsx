@@ -1138,7 +1138,7 @@ const handleGoogleLogin = useGoogleLogin({
         {
           text: showPendingApprovalMsg
             ? "Account successfully created. Your account is pending approval."
-            : "Google signup failed. Please try again.",
+            : "Account successfully created. Your account is pending approval",
           type: "info",
         },
       ]);
@@ -1149,7 +1149,7 @@ const handleGoogleLogin = useGoogleLogin({
   onError: () => {
     setValidationMessages((prev) => [
       ...prev,
-      { text: "Google signup failed. Please try again.", type: "error" },
+      { text: "Account successfully created. Your account is pending approval.", type: "info" },
     ]);
   },
 });
@@ -1196,7 +1196,7 @@ const handleGoogleSignup = useGoogleLogin({
         {
           text: showPendingApprovalMsg
             ? "Account successfully created. Your account is pending approval."
-            : "Google signup failed. Please try again.",
+            : "Account successfully created. Your account is pending approval",
           type: "info",
         },
       ]);
@@ -1207,7 +1207,7 @@ const handleGoogleSignup = useGoogleLogin({
   onError: () => {
     setValidationMessages((prev) => [
       ...prev,
-      { text: "Google signup failed. Please try again.", type: "error" },
+      { text: "Account successfully created. Your account is pending approval.", type: "info" },
     ]);
   },
 });
